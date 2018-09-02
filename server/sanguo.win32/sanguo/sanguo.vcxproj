@@ -1,0 +1,181 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{61DAD495-68D5-4833-A416-CFFF8F652975}</ProjectGuid>
+    <RootNamespace>sanguo</RootNamespace>
+    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
+    <ProjectName>sanguo.win32</ProjectName>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v140</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v140</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v140</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v140</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup />
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>$(SolutionDir)../../external/lua5.3/src;$(SolutionDir)../../external/lpeg/src;$(SolutionDir)../../external/pbc;$(SolutionDir)../../external/libevent/WIN32-Code;$(SolutionDir)../../external/libevent/WIN32-Code/nmake;$(SolutionDir)../../external/libevent;$(SolutionDir)../../external/libevent/event2;$(SolutionDir)../../external/rapidjson;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <AdditionalLibraryDirectories>$(SolutionDir)../../external/lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>lua5.3.lib;lpeg.lib;pbc.lib;libevent.lib;libevent_core.lib;libevent_extras.lib;ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <SDLCheck>true</SDLCheck>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+    </ClCompile>
+    <Link>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+    </ClCompile>
+    <Link>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\external\rapidjson\allocators.h" />
+    <ClInclude Include="..\..\..\external\rapidjson\cursorstreamwrapper.h" />
+    <ClInclude Include="..\..\..\external\rapidjson\document.h" />
+    <ClInclude Include="..\..\..\external\rapidjson\encodedstream.h" />
+    <ClInclude Include="..\..\..\external\rapidjson\encodings.h" />
+    <ClInclude Include="..\..\..\external\rapidjson\error\en.h" />
+    <ClInclude Include="..\..\..\external\rapidjson\error\error.h" />
+    <ClInclude Include="..\..\..\external\rapidjson\filereadstream.h" />
+    <ClInclude Include="..\..\..\external\rapidjson\filewritestream.h" />
+    <ClInclude Include="..\..\..\external\rapidjson\fwd.h" />
+    <ClInclude Include="..\..\..\external\rapidjson\internal\biginteger.h" />
+    <ClInclude Include="..\..\..\external\rapidjson\internal\diyfp.h" />
+    <ClInclude Include="..\..\..\external\rapidjson\internal\dtoa.h" />
+    <ClInclude Include="..\..\..\external\rapidjson\internal\ieee754.h" />
+    <ClInclude Include="..\..\..\external\rapidjson\internal\itoa.h" />
+    <ClInclude Include="..\..\..\external\rapidjson\internal\meta.h" />
+    <ClInclude Include="..\..\..\external\rapidjson\internal\pow10.h" />
+    <ClInclude Include="..\..\..\external\rapidjson\internal\regex.h" />
+    <ClInclude Include="..\..\..\external\rapidjson\internal\stack.h" />
+    <ClInclude Include="..\..\..\external\rapidjson\internal\strfunc.h" />
+    <ClInclude Include="..\..\..\external\rapidjson\internal\strtod.h" />
+    <ClInclude Include="..\..\..\external\rapidjson\internal\swap.h" />
+    <ClInclude Include="..\..\..\external\rapidjson\istreamwrapper.h" />
+    <ClInclude Include="..\..\..\external\rapidjson\memorybuffer.h" />
+    <ClInclude Include="..\..\..\external\rapidjson\memorystream.h" />
+    <ClInclude Include="..\..\..\external\rapidjson\msinttypes\inttypes.h" />
+    <ClInclude Include="..\..\..\external\rapidjson\msinttypes\stdint.h" />
+    <ClInclude Include="..\..\..\external\rapidjson\ostreamwrapper.h" />
+    <ClInclude Include="..\..\..\external\rapidjson\pointer.h" />
+    <ClInclude Include="..\..\..\external\rapidjson\prettywriter.h" />
+    <ClInclude Include="..\..\..\external\rapidjson\rapidjson.h" />
+    <ClInclude Include="..\..\..\external\rapidjson\reader.h" />
+    <ClInclude Include="..\..\..\external\rapidjson\schema.h" />
+    <ClInclude Include="..\..\..\external\rapidjson\stream.h" />
+    <ClInclude Include="..\..\..\external\rapidjson\stringbuffer.h" />
+    <ClInclude Include="..\..\..\external\rapidjson\writer.h" />
+    <ClInclude Include="..\..\src\Connection.h" />
+    <ClInclude Include="..\..\src\EventDispatcher.h" />
+    <ClInclude Include="..\..\src\GameLua.h" />
+    <ClInclude Include="..\..\src\GameUtil.h" />
+    <ClInclude Include="..\..\src\LuaWrapper.h" />
+    <ClInclude Include="..\..\src\NetworkManager.h" />
+    <ClInclude Include="..\..\src\ProtocalManager.h" />
+    <ClInclude Include="..\..\src\Ref.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\external\pbc\binding\lua53\pbc-lua53.c">
+      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Connection.cpp" />
+    <ClCompile Include="..\..\src\EventDispatcher.cpp" />
+    <ClCompile Include="..\..\src\GameLua.cpp" />
+    <ClCompile Include="..\..\src\GameUtil.cpp" />
+    <ClCompile Include="..\..\src\main.cpp" />
+    <ClCompile Include="..\..\src\NetworkManager.cpp" />
+    <ClCompile Include="..\..\src\ProtocalManager.cpp" />
+    <ClCompile Include="..\..\src\Ref.cpp" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

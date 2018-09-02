@@ -140,7 +140,6 @@ bool NetworkManager::init(int port)
     m_timer = event_new(m_eventBase,-1, EV_PERSIST, evtimer,this);
     event_add(m_timer, &tv);
     
-    printf("network init secceed...\n");
     return true;
 }
 
@@ -212,4 +211,5 @@ void NetworkManager::update()
     }
     lua_State* L = GameLua::getInstance()->getLuaState();
     Lua_CallRef(L, m_luaUpdateRefId, 0, escape);
+	log("update escape = %f", escape);
 }

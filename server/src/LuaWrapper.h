@@ -283,6 +283,14 @@ static int Lua_TopField(lua_State* L, T1& t1, T2& t2, Args... args)
     return ret;
 }
 
+template<typename T1, typename... Args>
+static int Lua_GlobalTop(lua_State* L, const char* global,T1& t1, Args... args)
+{
+	lua_getglobal(L, global);
+	return Lua_TopField(L, t1, args...) + 1;
+}
+
+
 static bool Lua_CallFunc(lua_State* L, int rt)
 {
     if (!lua_isfunction(L, -1))

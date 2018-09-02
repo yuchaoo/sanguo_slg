@@ -15,6 +15,8 @@ public:
     bool init();
     void addLuaPath(const char* dirpath);
     void setLuaLoader(lua_CFunction fn, int index);
+	void setLuaClass(lua_CFunction fn);
+
     bool luaMain();
     
     void clear();

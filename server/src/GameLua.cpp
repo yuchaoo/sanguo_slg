@@ -88,6 +88,54 @@ int luaTraceBack(lua_State* L)
     return 0;
 }
 
+int luaClass(lua_State* L)
+{
+	int n = lua_gettop(L);
+	const char* dir = lua_tostring(L, 1);
+	const char* super = lua_tostring(L, 2);
+
+	lua_getglobal(L, "package");
+	lua_getfield(L, -1, "loaded");
+	if (super && lua_getfield(L, -1, super) != LUA_TTABLE)
+	{
+		log("can not create class %s , reason : can not find the super class %s", dir, super);
+		return 0;
+	}
+
+	if (lua_getfield(L, -2, dir) == LUA_TTABLE)
+	{
+		log("%s have be a class", dir);
+		return 2;
+	}
+	
+	lua_pop(L, 1);
+	
+	lua_newtable(L);
+	lua_pushstring(L, "__index");
+	lua_pushvalue(L, -2);
+	lua_rawset(L, -3);
+
+	lua_pushstring(L, "__newindex");
+	lua_pushvalue(L, -2);
+	lua_rawset(L, -3);
+
+	if (super)
+	{
+		lua_pushvalue(L, -2);
+		lua_setmetatable(L, -2);
+		lua_pushvalue(L, -1);
+		lua_setfield(L, -4, dir);
+		return 2;
+	}
+	else
+	{
+		lua_pushvalue(L, -1);
+		lua_setfield(L, -3, dir);
+		return 1;
+	}
+}
+
+/***************************************************************/
 GameLua* GameLua::getInstance()
 {
     static GameLua lua;
@@ -121,6 +169,7 @@ bool GameLua::init()
 
     addLuaPath("./script");
     setLuaLoader(luaLoader, 2);
+	setLuaClass(luaClass);
 
     return true;
 }
@@ -185,6 +234,12 @@ void GameLua::addLuaPath(const char* dirpath)
     {
         log(paths[i].c_str());
     }
+}
+
+void GameLua::setLuaClass(lua_CFunction fn)
+{
+	lua_pushcfunction(m_L, luaClass);
+	lua_setglobal(m_L, "class");
 }
 
 void GameLua::clear()

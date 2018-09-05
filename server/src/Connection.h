@@ -55,9 +55,10 @@ public:
     void setLuaRTimeoutRefId(int ref) { m_luaRTimeoutRefId = ref; }
     const struct bufferevent* getBufferEvent() const { return m_be; }
 private:
-    static int s_maxRewriteCount;
+    int s_maxRewriteCount;
     struct bufferevent* m_be;
     int m_writeCount;
+    int m_lastSerialId;
 
     lua_State* m_l;
     int m_luaConnectedRefId;

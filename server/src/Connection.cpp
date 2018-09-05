@@ -137,6 +137,7 @@ Connection::Connection(struct bufferevent* be, lua_State* L)
     , m_luaFinishRefId(0)
     , m_luaWTimeoutRefId(0)
     , m_luaRTimeoutRefId(0)
+    , m_lastSerialId(-1)
 {
 
 }
@@ -190,11 +191,15 @@ void Connection::read()
     char* buff = pro.alloc(size);
     bufferevent_read(m_be, buff, size);
 
-    int cmd = pro.getCmd();
-    const char* data = pro.getContent();
-    int len = pro.getContentLen();
-
-    Lua_CallRef(m_l, m_luaRecvRefId, 0,cmd, data, len);
+    int serialId = pro.getSerialId();
+    if (serialId > m_lastSerialId)
+    {
+        int cmd = pro.getCmd();
+        const char* data = pro.getContent();
+        int len = pro.getContentLen();
+        Lua_CallRef(m_l, m_luaRecvRefId, 0, cmd, data, len);
+        m_lastSerialId = serialId;
+    }
 }
 
 void Connection::finish()

@@ -55,7 +55,7 @@ public:
     void setLuaRTimeoutRefId(int ref) { m_luaRTimeoutRefId = ref; }
     const struct bufferevent* getBufferEvent() const { return m_be; }
 private:
-    int s_maxRewriteCount;
+    static int s_maxRewriteCount;
     struct bufferevent* m_be;
     int m_writeCount;
     int m_lastSerialId;

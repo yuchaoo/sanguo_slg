@@ -96,43 +96,57 @@ int luaClass(lua_State* L)
 
 	lua_getglobal(L, "package");
 	lua_getfield(L, -1, "loaded");
-	if (super && lua_getfield(L, -1, super) != LUA_TTABLE)
-	{
-		log("can not create class %s , reason : can not find the super class %s", dir, super);
-		return 0;
-	}
 
-	if (lua_getfield(L, -2, dir) == LUA_TTABLE)
-	{
-		log("%s have be a class", dir);
-		return 2;
-	}
-	
-	lua_pop(L, 1);
-	
-	lua_newtable(L);
-	lua_pushstring(L, "__index");
-	lua_pushvalue(L, -2);
-	lua_rawset(L, -3);
+    if (super)
+    {
+        if (lua_getfield(L, -1, super) != LUA_TTABLE)
+        {
+            log("can not create class %s , reason : can not find the super class %s", dir, super);
+            return 0;
+        }
+        if (lua_getfield(L, -2, dir) == LUA_TTABLE)
+        {
+            log("%s have be a class", dir);
+            return 2;
+        }
+        lua_pop(L, 1);
 
-	lua_pushstring(L, "__newindex");
-	lua_pushvalue(L, -2);
-	lua_rawset(L, -3);
+        lua_newtable(L);
+        lua_pushstring(L, "__index");
+        lua_pushvalue(L, -2);
+        lua_rawset(L, -3);
 
-	if (super)
-	{
-		lua_pushvalue(L, -2);
-		lua_setmetatable(L, -2);
-		lua_pushvalue(L, -1);
-		lua_setfield(L, -4, dir);
-		return 2;
-	}
-	else
-	{
-		lua_pushvalue(L, -1);
-		lua_setfield(L, -3, dir);
-		return 1;
-	}
+        lua_pushstring(L, "__newindex");
+        lua_pushvalue(L, -2);
+        lua_rawset(L, -3);
+
+        lua_pushvalue(L, -2);
+        lua_setmetatable(L, -2);
+        lua_pushvalue(L, -1);
+        lua_setfield(L, -4, dir);
+        return 2;
+    }
+    else 
+    {
+        if (lua_getfield(L, -2, dir) == LUA_TTABLE)
+        {
+            log("%s have be a class", dir);
+            return 1;
+        }
+        lua_pop(L, 1);
+        lua_newtable(L);
+        lua_pushstring(L, "__index");
+        lua_pushvalue(L, -2);
+        lua_rawset(L, -3);
+
+        lua_pushstring(L, "__newindex");
+        lua_pushvalue(L, -2);
+        lua_rawset(L, -3);
+
+        lua_pushvalue(L, -1);
+        lua_setfield(L, -3, dir);
+        return 1;
+    }
 }
 
 /***************************************************************/

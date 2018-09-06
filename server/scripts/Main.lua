@@ -5,9 +5,11 @@ print(string.format("a + b = %d",a , b))
 
 local This , super = class("Person")
 
+print(This,super)
+
 function This:create(...)
 	local o = {}
-	setmetatable(self,o)
+	setmetatable(o,self)
 	o:init(...)
 	return o
 end

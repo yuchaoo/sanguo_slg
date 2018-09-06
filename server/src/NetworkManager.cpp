@@ -4,6 +4,7 @@
 #include<stdio.h>
 #include<chrono>
 #include <assert.h>
+#include <signal.h>
 
 #include "event.h"
 #include "listener.h"
@@ -28,6 +29,14 @@ void evtimer(int fd, short event, void* data)
 {
     NetworkManager* net = (NetworkManager*)(data);
     net->update();
+}
+
+void evsignal(evutil_socket_t sig, short events, void *user_data)
+{
+    printf("to exit in 2 seconds.\n");
+    struct event_base *base = (struct event_base *)user_data;
+    struct timeval delay = { 2, 0 };
+    event_base_loopexit(base, &delay);
 }
 
 void eventLog(int severity, const char *msg)
@@ -80,6 +89,12 @@ NetworkManager::~NetworkManager()
 {
     delete m_listenAddr;
     WSACleanup();
+    if (m_eventBase)
+    {
+        struct timeval delay = { 0, 0 };
+        event_base_loopexit(m_eventBase, &delay);
+        m_eventBase = NULL;
+    }
 }
 
 void NetworkManager::addObserver(NetObserver* observer)
@@ -127,10 +142,8 @@ bool NetworkManager::init(int port)
     m_listener = evconnlistener_new_bind(m_eventBase,evlistener,(void*)m_eventBase, LEV_OPT_REUSEABLE | LEV_OPT_CLOSE_ON_FREE,1,(struct sockaddr*)m_listenAddr ,sizeof(sockaddr_in));
     if(!m_listener)
     {
-        int errCode = EVUTIL_SOCKET_ERROR();
-        const char* reason = evutil_socket_error_to_string(errCode);
         event_base_free(m_eventBase);
-        printf("Could not create a listener, msg : %s\n",reason);
+        printf("Could not create a listener\n");
         return false;
     }
 
@@ -138,8 +151,20 @@ bool NetworkManager::init(int port)
 
     struct timeval tv = {1,0};
     m_timer = event_new(m_eventBase,-1, EV_PERSIST, evtimer,this);
-    event_add(m_timer, &tv);
+    if (!m_timer || event_add(m_timer, &tv) < 0)
+    {
+        evconnlistener_free(m_listener);
+        event_base_free(m_eventBase);
+        return false;
+    }
     
+    struct event *signal_event =  evsignal_new(m_eventBase, SIGINT, evsignal, m_eventBase);
+    if (!signal_event || event_add(signal_event, NULL) < 0)
+    {
+        evconnlistener_free(m_listener);
+        event_base_free(m_eventBase);
+        return false;
+    }
     return true;
 }
 
@@ -185,6 +210,7 @@ void NetworkManager::removeConnection(struct bufferevent* be)
 
 void NetworkManager::dispatch()
 {
+    log("dispatch...");
     if(m_eventBase && m_listener)
     {
         printf("network dispatch...\n");

@@ -196,20 +196,21 @@ lua_State* GameLua::getLuaState()
 bool GameLua::luaMain()
 {
     lua_pushcfunction(m_L, luaTraceBack);
-    if (luaL_loadfile(m_L, "scripts/main.lua"))
+    if (luaL_loadfile(m_L, "scripts/Main.lua"))
     {
         const char* err = lua_tostring(m_L, -1);
         log("load main.lua failed, err:%s", err);
         lua_pop(m_L, 2);
         return false;
     }
-    if (lua_pcall(m_L, 0, LUA_MULTRET, -2))
+    if (lua_pcall(m_L, 0, 0, -2))
     {
         const char* err = lua_tostring(m_L, -1);
         printf("execute file failed , err: %s\n", err);
         lua_pop(m_L, 2);
         return false;
     }
+    printf("lua main ----------");
     return true;
 }
 

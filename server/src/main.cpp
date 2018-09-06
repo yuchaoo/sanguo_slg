@@ -3,6 +3,7 @@
 #include "EventDispatcher.h"
 #include "Ref.h"
 #include "GameLua.h"
+#include "GameUtil.h"
 
 extern "C"
 {
@@ -15,19 +16,20 @@ int main()
 {
     if (!GameLua::getInstance()->init())
     {
-        printf("gamelua int failed!!!\n");
+        log("gamelua int failed!!!\n");
         return 1;
     }
 
     bool ret = NetworkManager::getInstance()->init(6666);
     if (!ret)
     {
-        printf("network init failed!!!\n");
+        log("network init failed!!!\n");
         return 1;
     }
-    printf("network init secceed\n");
+    log("network init secceed\n");
 
     GameLua::getInstance()->luaMain();
+    log("lua main exe finish");
     NetworkManager::getInstance()->dispatch();
     return 0;
 }

@@ -2,6 +2,7 @@
 #define _CLIENT_EVENT_
 #include <unordered_map>
 #include "GameLua.h"
+#include "Ref.h"
 
 struct bufferevent;
 #define HEAD_LEN 12
@@ -29,6 +30,7 @@ struct ProtoData
 };
 
 class Connection
+    :public Ref
 {
 public:
     Connection(struct bufferevent* be, lua_State* L);

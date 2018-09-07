@@ -76,6 +76,8 @@ NetworkManager::NetworkManager()
 ,m_eventBase(NULL)
 ,m_listenAddr(NULL)
 ,m_timer(NULL)
+, m_luaAddConnRefId(0)
+,m_luaUpdateRefId(0)
 {
     m_timeval.tv_sec = m_timeval.tv_usec = 0;
     m_listenAddr = new sockaddr_in;
@@ -121,7 +123,22 @@ void NetworkManager::removeObserver(NetObserver* observer)
 
 void NetworkManager::setLuaUpdateRefId(int ref)
 {
+    if (m_luaUpdateRefId > 0)
+    {
+        lua_State* L = GameLua::getInstance()->getLuaState();
+        luaL_unref(L, LUA_REGISTRYINDEX, m_luaUpdateRefId);
+    }
     m_luaUpdateRefId = ref;
+}
+
+void NetworkManager::setLuaCreateConnRefId(int ref)
+{
+    if (m_luaAddConnRefId > 0)
+    {
+        lua_State* L = GameLua::getInstance()->getLuaState();
+        luaL_unref(L, LUA_REGISTRYINDEX, m_luaAddConnRefId);
+    }
+    m_luaAddConnRefId = ref;
 }
 
 bool NetworkManager::init(int port)
@@ -189,6 +206,8 @@ void NetworkManager::addConnection(struct bufferevent* be)
     {
         (*iter)->onConnectionCreated(conn);
     }
+    lua_State* L = GameLua::getInstance()->getLuaState();
+    //Lua_CallRef(L,m_luaAddConnRefId,0,)
 }
 
 void NetworkManager::removeConnection(struct bufferevent* be)
@@ -238,4 +257,42 @@ void NetworkManager::update()
     lua_State* L = GameLua::getInstance()->getLuaState();
     Lua_CallRef(L, m_luaUpdateRefId, 0, escape);
 	log("update escape = %f", escape);
+}
+
+/**************************************************************/
+
+int lua_network_init(lua_State* L)
+{
+    NetworkManager* mgr = Lua_GetPointer<NetworkManager>(L,1);
+    if (!mgr) return 0;
+    int port = lua_tointeger(L, 2);
+    float interval = lua_isnumber(L, 3) ? lua_tonumber(L, 3) : 1.0f;
+    mgr->init(port);
+    return 0;
+}
+
+int lua_network_setLuaUpdateHandler(lua_State* L)
+{
+    NetworkManager* mgr = Lua_GetPointer<NetworkManager>(L, 1);
+    if (!mgr || !lua_isfunction(L,2)) 
+        return 0;
+    int ref = luaL_ref(L, LUA_REGISTRYINDEX);
+    mgr->setLuaUpdateRefId(ref);
+    return 0;
+}
+
+int lua_network_setLuaCreateConnHandle(lua_State* L)
+{
+    NetworkManager* mgr = Lua_GetPointer<NetworkManager>(L, 1);
+    if (!mgr || !lua_isfunction(L, 2))
+        return 0;
+    int ref = luaL_ref(L, LUA_REGISTRYINDEX);
+    mgr->setLuaCreateConnRefId(ref);
+    return 0;
+}
+
+int lua_network_dispatch(lua_State* L)
+{
+    NetworkManager* mgr = Lua_GetPointer<NetworkManager>(L, 1);
+    if(!mgr)
 }

@@ -27,6 +27,7 @@ public:
     void addObserver(NetObserver* observer);
     void removeObserver(NetObserver* observer);
     void setLuaUpdateRefId(int ref);
+    void setLuaCreateConnRefId(int ref);
     bool init(int port);
     void listener(struct evconnlistener* listener, evutil_socket_t, struct sockaddr* addr);
     void addConnection(struct bufferevent* be);
@@ -44,6 +45,7 @@ private:
     struct event* m_timer;
     struct timeval m_timeval;
     int m_luaUpdateRefId;
+    int m_luaAddConnRefId;
     sockaddr_in* m_listenAddr;
     std::vector<NetObserver*> m_observers;
     std::vector<Connection*> m_connects;

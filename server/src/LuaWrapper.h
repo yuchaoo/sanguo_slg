@@ -14,59 +14,139 @@ extern "C"
 
 #define CPP_POINTER "__ptr"
 
-static size_t Lua_GetSize(lua_State* L, int pos)
+#define CPP_TO_LUA(class) "cc"#class
+
+template<typename T>
+inline static const char* Lua_GetName()
 {
-    if (lua_istable(L, pos))
-    {
-        return lua_rawlen(L, pos);
-    }
-    return 0;
+    std::string str;
+    using TP = std::remove_const<std::remove_reference<std::remove_pointer<T>::type>::type>::type;
+    return CPP_TO_LUA(TP);
 }
 
-static void Lua_Remove(lua_State* L, int n)
+template<typename T>
+static int Lua_CreateModule(lua_State* L, luaL_Reg* fn)
 {
-    if (n > 0)
+    const char* nname = Lua_GetName<T>();
+    lua_getglobal(L, "package");
+    lua_getfield(L, -1,"loaded");
+    lua_getfield(L, -1, nname);
+    if (!lua_istable(L, -1))
     {
-        lua_pop(L, n);
+        luaL_newlib(L, fn);
+        lua_pushvalue(L, -1);
+        lua_setfield(L, -2, "__index");
+        lua_pushvalue(L, -1);
+        lua_setfield(L, -2, "__newindex");
+        lua_pushvalue(L, -1);
+        lua_setfield(L, -3, nname);
     }
-    else if (n < 0)
-    {
-        int top = lua_gettop(L);
-        lua_pop(L, top);
-    }
+    lua_remove(L, -2);
+    lua_remove(L, -2);
+    return 1;
 }
 
-static int Lua_CreateRef(lua_State* L)
+template<typename T>
+static int Lua_CreateObj(lua_State* L, T* ref)
 {
-    if (lua_isfunction(L, -1))
-    {
-        return luaL_ref(L, LUA_REGISTRYINDEX);
-    }
-    return 0;
-}
-
-static void Lua_DeleteRef(lua_State* L,int ref)
-{
-    lua_rawgeti(L, LUA_REGISTRYINDEX, ref);
-    luaL_unref(L, LUA_REGISTRYINDEX, ref);
-}
-
-static int Lua_CreateRef(lua_State* L, Ref* ref, const char* nname)
-{
+    const char* nname = Lua_GetName<T>();
     lua_newtable(L);
     lua_getglobal(L, "package");
     lua_getfield(L, -1,"loaded");
     if (lua_getfield(L, -1, nname) != LUA_TTABLE)
     {
         log("can not find the table : %s",nname);
-        lua_pop(L, 2);
+        lua_pop(L, 4);
         return 0;
     }
     lua_remove(L, -2);
     lua_remove(L, -2);
     lua_setmetatable(L, -2);
     ref->m_luaID = luaL_ref(L, LUA_REGISTRYINDEX);
+    
+    lua_pushlightuserdata(L, ref);
+    lua_setfield(L, -2, CPP_POINTER);
     return 1;
+}
+
+/*******************************************/
+
+static int Lua_GetInt(lua_State* L, int index)
+{
+    return lua_isnumber(L, index) ? lua_tointeger(L, index) : 0;
+}
+
+static unsigned Lua_GetUnsign(lua_State* L, int index)
+{
+    return lua_isnumber(L, index) ? lua_tointeger(L, index) : 0;
+}
+
+static float Lua_GetFloat(lua_State* L, int index)
+{
+    return lua_isnumber(L, index) ? lua_tonumber(L, index) : 0;
+}
+
+static double Lua_GetDouble(lua_State* L, int index)
+{
+    return lua_isnumber(L, index) ? lua_tonumber(L, index) : 0;
+}
+
+static const char* Lua_GetString(lua_State* L, int index)
+{
+    return lua_isstring(L, index) ? lua_tostring(L, index) : "";
+}
+
+template<typename T>
+static T* Lua_GetPointer(lua_State* L, int index)
+{
+    T* t = NULL;
+    if (lua_istable(L, index) && lua_getfield(L, index, CPP_POINTER) == LUA_TLIGHTUSERDATA)
+    {
+        t = (T*)lua_touserdata(L, index);
+    }
+    return t;
+}
+
+/****************************************************/
+
+static int Lua_SetInt(lua_State* L, int value)
+{
+    lua_pushinteger(L, value);
+    return 1;
+}
+
+static int Lua_SetUnsigned(lua_State* L, unsigned value)
+{
+    lua_pushinteger(L, value);
+    return 1;
+}
+
+static int Lua_SetFloat(lua_State* L, float value)
+{
+    lua_pushnumber(L, value);
+    return 1;
+}
+
+static int Lua_SetDouble(lua_State* L, double value)
+{
+    lua_pushnumber(L, value);
+    return 1;
+}
+
+static int Lua_SetString(lua_State* L, const char* value)
+{
+    lua_pushstring(L, value);
+    return 1;
+}
+
+template<typename T>
+static int Lua_SetPointer(lua_State* L, T* ptr)
+{
+    if (lua_rawgeti(L, LUA_REGISTRYINDEX, ptr->m_luaID) == LUA_TTABLE)
+    {
+        return 1;
+    }
+    return Lua_CreateObj<T>(L, ptr);
 }
 
 /*****************************************************************/
@@ -206,94 +286,6 @@ static void Lua_Unpack(lua_State* L, T1& value1, T2& value2, Args&... args)
 {
     Lua_Unpack(L, value2, args...);
     Lua_Unpack(L, value1);
-}
-/*******************************************/
-
-static int Lua_GetInt(lua_State* L, int index)
-{
-    return lua_isnumber(L, index) ? lua_tointeger(L, index) : 0;
-}
-
-static unsigned Lua_GetUnsign(lua_State* L, int index)
-{
-    return lua_isnumber(L, index) ? lua_tointeger(L, index) : 0;
-}
-
-static float Lua_GetFloat(lua_State* L, int index)
-{
-    return lua_isnumber(L, index) ? lua_tonumber(L, index) : 0;
-}
-
-static double Lua_GetDouble(lua_State* L, int index)
-{
-    return lua_isnumber(L, index) ? lua_tonumber(L, index) : 0;
-}
-
-static const char* Lua_GetString(lua_State* L, int index)
-{
-    return lua_isstring(L, index) ? lua_tostring(L, index) : "";
-}
-
-template<typename T>
-static T* Lua_GetPointer(lua_State* L, int index)
-{
-    T* t = NULL;
-    if (lua_istable(L, index) && lua_getfield(L, index, CPP_POINTER) == LUA_TLIGHTUSERDATA)
-    {
-        t = (T*)lua_touserdata(L, index);
-    }
-    return t;
-}
-
-/****************************************************/
-
-static int Lua_SetInt(lua_State* L, int value)
-{
-    lua_pushinteger(L, value);
-    return 1;
-}
-
-static int Lua_SetUnsigned(lua_State* L, unsigned value)
-{
-    lua_pushinteger(L, value);
-    return 1;
-}
-
-static int Lua_SetFloat(lua_State* L, float value)
-{
-    lua_pushnumber(L, value);
-    return 1;
-}
-
-static int Lua_SetDouble(lua_State* L, double value)
-{
-    lua_pushnumber(L, value);
-    return 1;
-}
-
-static int Lua_SetString(lua_State* L, const char* value)
-{
-    lua_pushstring(L, value);
-    return 1;
-}
-
-static int Lua_CreateObj(lua_State* L, const char* moudle)
-{
-    return 1;
-}
-
-
-static int Lua_SetRef(lua_State* L, const char* nname, Ref* ptr)
-{
-    int luaID = ptr->m_luaID;
-    if (lua_rawgeti(L, LUA_REGISTRYINDEX, luaID) == LUA_TTABLE)
-    {
-        return 1;
-    }
-    else
-    {
-        return 1;
-    }
 }
 
 /*******************************************/

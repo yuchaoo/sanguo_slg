@@ -1,6 +1,7 @@
 ﻿#include "GameLua.h"
 #include "LuaWrapper.h"
 #include "GameUtil.h"
+#include "NetworkManager.h"
 #include <fstream>
 
 extern "C"
@@ -184,6 +185,7 @@ bool GameLua::init()
     addLuaPath("./script");
     setLuaLoader(luaLoader, 2);
 	setLuaClass(luaClass);
+    lua_open_network_module(m_L);
 
     return true;
 }

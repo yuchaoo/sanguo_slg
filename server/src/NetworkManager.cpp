@@ -206,7 +206,6 @@ void NetworkManager::addConnection(struct bufferevent* be)
     {
         (*iter)->onConnectionCreated(conn);
     }
-    lua_State* L = GameLua::getInstance()->getLuaState();
     //Lua_CallRef(L,m_luaAddConnRefId,0,)
 }
 
@@ -281,7 +280,7 @@ int lua_network_setLuaUpdateHandler(lua_State* L)
     return 0;
 }
 
-int lua_network_setLuaCreateConnHandle(lua_State* L)
+int lua_network_setLuaCreateConnHandler(lua_State* L)
 {
     NetworkManager* mgr = Lua_GetPointer<NetworkManager>(L, 1);
     if (!mgr || !lua_isfunction(L, 2))
@@ -294,5 +293,19 @@ int lua_network_setLuaCreateConnHandle(lua_State* L)
 int lua_network_dispatch(lua_State* L)
 {
     NetworkManager* mgr = Lua_GetPointer<NetworkManager>(L, 1);
-    if(!mgr)
+    if (!mgr) return 0;
+    mgr->dispatch();
+    return 0;
+}
+
+int lua_open_network_module(lua_State* L)
+{
+    luaL_Reg reg[] = {
+        {"init",lua_network_init},
+        {"setLuaUpdateHandler",lua_network_setLuaUpdateHandler },
+        {"setLuaCreateConnHandler",lua_network_setLuaCreateConnHandler },
+        {NULL,NULL}
+    };
+    Lua_CreateModule<NetworkManager>(L, reg);
+    return 0;
 }

@@ -10,7 +10,10 @@
 struct event_base;
 struct evconnlistener;
 struct sockaddr_in;
+struct lua_State;
 class Connection;
+
+int lua_open_network_module(lua_State* L);
 
 struct NetObserver
 {

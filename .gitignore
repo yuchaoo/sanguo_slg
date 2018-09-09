@@ -1,0 +1,14 @@
+
+*.log
+*.tlog
+*.idb
+*.pdb
+*.obj
+*.db
+*.opendb
+*.ipch
+*.db-shm
+*.db-wal
+*.ilk
+*.exe
+server/sanguo.win32/.vs/sanguo/v15/.suo

@@ -1,7 +1,4 @@
-﻿local a = 1
-local b = 2
-local c = a + b
-print(string.format("a + b = %d",a , b))
+﻿local Test1 = require("Test1")
 
 local This , super = class("Person")
 
@@ -34,3 +31,16 @@ local a = This:create({
 
 print(string.format("id = %d",a:getId()))
 print(string.format("name = %s",a:getName()))
+
+local NetworkManager = require("cpp.NetworkManager")
+
+local ret = NetworkManager:init(8080)
+if ret then
+	print("network init secceed......")
+end
+
+NetworkManager:setLuaUpdateHandler(function(dt)
+	print(string.format("lua update dt = %d",dt))
+end)
+
+NetworkManager:dispatch()

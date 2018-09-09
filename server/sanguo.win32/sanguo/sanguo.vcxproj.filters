@@ -152,9 +152,6 @@
     <ClCompile Include="..\..\src\main.cpp">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\external\pbc\binding\lua53\pbc-lua53.c">
-      <Filter>src</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\EventDispatcher.cpp">
       <Filter>src</Filter>
     </ClCompile>
@@ -174,6 +171,9 @@
       <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\Connection.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\external\pbc\binding\lua53\pbc-lua53.c">
       <Filter>src</Filter>
     </ClCompile>
   </ItemGroup>

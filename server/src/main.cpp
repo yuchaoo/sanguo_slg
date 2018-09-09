@@ -19,8 +19,9 @@ int main()
         log("gamelua int failed!!!\n");
         return 1;
     }
+	GameLua::getInstance()->luaMain();
 
-    bool ret = NetworkManager::getInstance()->init(6666);
+    /*bool ret = NetworkManager::getInstance()->init(6666);
     if (!ret)
     {
         log("network init failed!!!\n");
@@ -30,6 +31,7 @@ int main()
 
     GameLua::getInstance()->luaMain();
     log("lua main exe finish");
-    NetworkManager::getInstance()->dispatch();
+    NetworkManager::getInstance()->dispatch();*/
+
     return 0;
 }

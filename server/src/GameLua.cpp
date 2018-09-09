@@ -14,142 +14,6 @@ extern "C"
 extern int luaopen_protobuf_c(lua_State *L);
 extern "C" int luaopen_lpeg(lua_State *L);
 
-int luaLoader(lua_State* L)
-{
-    std::string path = lua_tostring(L, -1);
-    if (path.empty())
-        return 0;
-    size_t end = path.rfind(".lua");
-
-    std::string tmp = path;
-    if (end == std::string::npos)
-        tmp = path.substr(0, end);
-
-    size_t pos = tmp.find(".");
-    while (pos != std::string::npos)
-    {
-        tmp.replace(pos, pos + 1, "/");
-        pos = tmp.find(".", pos + 1);
-    }
-
-    std::string filepath = std::string("./scripts/") + tmp + ".lua";
-
-    FILE* file = fopen(filepath.c_str(), "rb");
-    if (!file)
-    {
-        log("read the file %s failed!!", filepath.c_str());
-        return 0;
-    }
-
-    fseek(file, 0, SEEK_END);
-    size_t size = ftell(file);
-    fseek(file, 0, SEEK_SET);
-
-    unsigned char* buffer = new  unsigned char[size];
-    size = fread(buffer, sizeof(char), size, file);
-    fclose(file);
-
-    unsigned char* content = buffer;
-    size_t contentLen = size;
-    if (size >= 3)
-    {
-        unsigned bom = buffer[0] | (buffer[1] << 8) | (buffer[2] << 16);
-        if (bom == 0xBFBBEF || bom == 0xEFBBBF)
-        {
-            content += 3;
-            contentLen -= 3;
-        }
-    }
-
-    int ret = luaL_loadbuffer(L, (char*)content, contentLen, path.c_str());
-    if (ret != 0)
-    {
-        const char* str = lua_tostring(L, -1);
-        log("load script %s failed!!!, msg:%s", path.c_str(), str);
-        lua_pop(L, 1);
-        delete[] buffer;
-        return 0;
-    }
-    delete[] buffer;
-    return 1;
-}
-
-int luaTraceBack(lua_State* L)
-{
-    const char* msg = lua_tostring(L, -1);
-    if (msg)
-    {
-        luaL_traceback(L, L, msg, 1);
-        msg = lua_tostring(L, -1);
-        log("***********************trace back start************************");
-        log(msg);
-        log("***********************trace back end**************************");
-        lua_pop(L, 2);
-    }
-    return 0;
-}
-
-int luaClass(lua_State* L)
-{
-	int n = lua_gettop(L);
-	const char* dir = lua_tostring(L, 1);
-	const char* super = lua_tostring(L, 2);
-
-	lua_getglobal(L, "package");
-	lua_getfield(L, -1, "loaded");
-
-    if (super)
-    {
-        if (lua_getfield(L, -1, super) != LUA_TTABLE)
-        {
-            log("can not create class %s , reason : can not find the super class %s", dir, super);
-            return 0;
-        }
-        if (lua_getfield(L, -2, dir) == LUA_TTABLE)
-        {
-            log("%s have be a class", dir);
-            return 2;
-        }
-        lua_pop(L, 1);
-
-        lua_newtable(L);
-        lua_pushstring(L, "__index");
-        lua_pushvalue(L, -2);
-        lua_rawset(L, -3);
-
-        lua_pushstring(L, "__newindex");
-        lua_pushvalue(L, -2);
-        lua_rawset(L, -3);
-
-        lua_pushvalue(L, -2);
-        lua_setmetatable(L, -2);
-        lua_pushvalue(L, -1);
-        lua_setfield(L, -4, dir);
-        return 2;
-    }
-    else 
-    {
-        if (lua_getfield(L, -2, dir) == LUA_TTABLE)
-        {
-            log("%s have be a class", dir);
-            return 1;
-        }
-        lua_pop(L, 1);
-        lua_newtable(L);
-        lua_pushstring(L, "__index");
-        lua_pushvalue(L, -2);
-        lua_rawset(L, -3);
-
-        lua_pushstring(L, "__newindex");
-        lua_pushvalue(L, -2);
-        lua_rawset(L, -3);
-
-        lua_pushvalue(L, -1);
-        lua_setfield(L, -3, dir);
-        return 1;
-    }
-}
-
 /***************************************************************/
 GameLua* GameLua::getInstance()
 {
@@ -183,8 +47,8 @@ bool GameLua::init()
     luaopen_protobuf_c(m_L);
 
     addLuaPath("./script");
-    setLuaLoader(luaLoader, 2);
-	setLuaClass(luaClass);
+    setLuaLoader(Lua_Loader, 2);
+	setLuaFunc();
     lua_open_network_module(m_L);
 
     return true;
@@ -197,19 +61,19 @@ lua_State* GameLua::getLuaState()
 
 bool GameLua::luaMain()
 {
-    lua_pushcfunction(m_L, luaTraceBack);
-    if (luaL_loadfile(m_L, "scripts/Main.lua"))
+	lua_pushstring(m_L, "Main.lua");
+    if (Lua_Loader(m_L) == 0)
     {
         const char* err = lua_tostring(m_L, -1);
         log("load main.lua failed, err:%s", err);
-        lua_pop(m_L, 2);
+        lua_pop(m_L, 1);
         return false;
     }
-    if (lua_pcall(m_L, 0, 0, -2))
+    if (lua_pcall(m_L, 0, 0, 0))
     {
         const char* err = lua_tostring(m_L, -1);
         printf("execute file failed , err: %s\n", err);
-        lua_pop(m_L, 2);
+        lua_pop(m_L, 1);
         return false;
     }
     printf("lua main ----------");
@@ -253,10 +117,16 @@ void GameLua::addLuaPath(const char* dirpath)
     }
 }
 
-void GameLua::setLuaClass(lua_CFunction fn)
+void GameLua::setLuaFunc()
 {
-	lua_pushcfunction(m_L, luaClass);
-	lua_setglobal(m_L, "class");
+	luaL_Reg reg[] = {
+		{"class",Lua_Class},
+		{"print",Lua_Print},
+		{NULL,NULL}
+	};
+	lua_getglobal(m_L, "_G");
+	luaL_setfuncs(m_L, reg, 0);
+	lua_pop(m_L, 1);
 }
 
 void GameLua::clear()

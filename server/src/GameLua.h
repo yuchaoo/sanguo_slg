@@ -11,14 +11,11 @@ class GameLua
 public:
     static GameLua* getInstance();
     lua_State* getLuaState();
-
     bool init();
     void addLuaPath(const char* dirpath);
     void setLuaLoader(lua_CFunction fn, int index);
-	void setLuaClass(lua_CFunction fn);
-
+	void setLuaFunc();
     bool luaMain();
-    
     void clear();
 private:
     GameLua();

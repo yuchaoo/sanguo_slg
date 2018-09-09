@@ -1,6 +1,8 @@
 ﻿#ifndef _LUA_WRAPPER_
 #define _LUA_WRAPPER_
 #include "GameUtil.h"
+#include "Ref.h"
+#include<regex>
 
 extern "C"
 {
@@ -11,84 +13,308 @@ extern "C"
 #include <vector>
 #include <string>
 #include <assert.h>
+#include<iostream>
 
 #define CPP_POINTER "__ptr"
 
 #define CPP_TO_LUA(class) "cc"#class
 
-template<typename T>
-inline static const char* Lua_GetName()
+static int Lua_Loader(lua_State* L)
 {
-    std::string str;
+	std::string path = lua_tostring(L, -1);
+	if (path.empty())
+		return 0;
+	size_t end = path.rfind(".lua");
+
+	std::string tmp = path;
+	if (end != std::string::npos)
+		tmp = path.substr(0, end);
+
+	size_t pos = tmp.find(".");
+	while (pos != std::string::npos)
+	{
+		tmp.replace(pos, pos + 1, "/");
+		pos = tmp.find(".", pos + 1);
+	}
+
+	std::string filepath = std::string("./scripts/") + tmp + ".lua";
+
+	FILE* file = fopen(filepath.c_str(), "rb");
+	if (!file)
+	{
+		log("read the file %s failed!!", filepath.c_str());
+		return 0;
+	}
+
+	fseek(file, 0, SEEK_END);
+	size_t size = ftell(file);
+	fseek(file, 0, SEEK_SET);
+
+	unsigned char* buffer = new  unsigned char[size];
+	size = fread(buffer, sizeof(char), size, file);
+	fclose(file);
+
+	unsigned char* content = buffer;
+	size_t contentLen = size;
+	if (size >= 3)
+	{
+		unsigned bom = buffer[0] | (buffer[1] << 8) | (buffer[2] << 16);
+		if (bom == 0xBFBBEF || bom == 0xEFBBBF)
+		{
+			content += 3;
+			contentLen -= 3;
+		}
+	}
+
+	int ret = luaL_loadbuffer(L, (char*)content, contentLen, path.c_str());
+	if (ret != 0)
+	{
+		const char* str = lua_tostring(L, -1);
+		log("load script %s failed!!!, msg:%s", path.c_str(), str);
+		lua_pop(L, 1);
+		delete[] buffer;
+		return 0;
+	}
+	delete[] buffer;
+	return 1;
+}
+
+static int Lua_Class(lua_State* L)
+{
+	int n = lua_gettop(L);
+	const char* dir = lua_tostring(L, 1);
+	const char* super = lua_tostring(L, 2);
+
+	lua_getglobal(L, "package");
+	lua_getfield(L, -1, "loaded");
+
+	if (super)
+	{
+		lua_getfield(L, -1, super);
+		if (lua_isnil(L, -1))
+		{
+			log("can not create class %s , reason : can not find the super class %s", dir, super);
+			return 0;
+		}
+		lua_getfield(L, -2, dir);
+		if (lua_isnil(L, -1))
+		{
+			log("%s have be a class", dir);
+			return 2;
+		}
+		lua_pop(L, 1);
+
+		lua_newtable(L);
+		lua_pushstring(L, "__index");
+		lua_pushvalue(L, -2);
+		lua_rawset(L, -3);
+
+		lua_pushstring(L, "__newindex");
+		lua_pushvalue(L, -2);
+		lua_rawset(L, -3);
+
+		lua_pushvalue(L, -2);
+		lua_setmetatable(L, -2);
+		lua_pushvalue(L, -1);
+		lua_setfield(L, -4, dir);
+		return 2;
+	}
+	else
+	{
+		lua_getfield(L, -2, dir);
+		if (!lua_isnil(L, -1))
+		{
+			log("%s have be a class", dir);
+			return 1;
+		}
+		lua_pop(L, 1);
+		lua_newtable(L);
+		lua_pushstring(L, "__index");
+		lua_pushvalue(L, -2);
+		lua_rawset(L, -3);
+
+		lua_pushstring(L, "__newindex");
+		lua_pushvalue(L, -2);
+		lua_rawset(L, -3);
+
+		lua_pushvalue(L, -1);
+		lua_setfield(L, -3, dir);
+		return 1;
+	}
+}
+
+static int Lua_Print(lua_State * L)
+{
+	int n = lua_gettop(L);  
+	int i;
+	std::string out;
+
+	lua_getglobal(L, "tostring");
+	for (i = 1; i <= n; i++) 
+	{
+		const char *s;
+		lua_pushvalue(L, -1); 
+		lua_pushvalue(L, i);  
+		lua_call(L, 1, 1);
+		size_t sz;
+		s = lua_tolstring(L, -1, &sz); 
+		if (s == NULL)
+			return luaL_error(L, LUA_QL("tostring") " must return a string to "
+				LUA_QL("print"));
+		if (i>1) out.append("\t");
+		out.append(s, sz);
+		lua_pop(L, 1);  
+	}
+	log(out.c_str());
+	return 0;
+}
+
+template<typename T>
+inline static std::string Lua_GetName()
+{
     using TP = std::remove_const<std::remove_reference<std::remove_pointer<T>::type>::type>::type;
-    return CPP_TO_LUA(TP);
+	const char* str = typeid(TP).name();
+	std::cmatch cm;
+	const char* s2 = "(class )*(\\w*::)*(\\w*)(<\\w*>)*";
+	if (std::regex_match(str, cm, std::regex(s2), std::regex_constants::match_default))
+	{
+		return std::string("cpp.") + cm[3].str();
+	}
+	assert(false);
+	return "";
 }
 
 template<typename T>
 static int Lua_CreateModule(lua_State* L, luaL_Reg* fn)
 {
-    const char* nname = Lua_GetName<T>();
+    std::string nname = Lua_GetName<T>();
     lua_getglobal(L, "package");
     lua_getfield(L, -1,"loaded");
-    lua_getfield(L, -1, nname);
+    lua_getfield(L, -1, nname.c_str());
     if (!lua_istable(L, -1))
     {
+		lua_pop(L, 1);
         luaL_newlib(L, fn);
-        lua_pushvalue(L, -1);
-        lua_setfield(L, -2, "__index");
-        lua_pushvalue(L, -1);
-        lua_setfield(L, -2, "__newindex");
-        lua_pushvalue(L, -1);
-        lua_setfield(L, -3, nname);
+		lua_pushstring(L, "__index");
+        lua_pushvalue(L, -2);
+		lua_rawset(L, -3);
+
+		lua_pushstring(L, "__newindex");
+        lua_pushvalue(L, -2);
+		lua_rawset(L, -3);
+
+		lua_pushstring(L, nname.c_str());
+        lua_pushvalue(L, -2);
+		lua_rawset(L, -3);
     }
-    lua_remove(L, -2);
-    lua_remove(L, -2);
+	lua_pop(L, 3);
     return 1;
 }
 
 template<typename T>
-static int Lua_CreateObj(lua_State* L, T* ref)
+static int Lua_CreateModule(lua_State* L, luaL_Reg* fn,T* singleton)
 {
-    const char* nname = Lua_GetName<T>();
+	std::string nname = Lua_GetName<T>();
+	lua_getglobal(L, "package");
+	lua_getfield(L, -1, "loaded");
+	lua_getfield(L, -1, nname.c_str());
+	if (!lua_istable(L, -1))
+	{
+		lua_pop(L, 1);
+		luaL_newlib(L, fn);
+
+		lua_pushstring(L, "__index");
+		lua_pushvalue(L, -2);
+		lua_rawset(L, -3);
+
+		lua_pushstring(L, "__newindex");
+		lua_pushvalue(L, -2);
+		lua_rawset(L, -3);
+
+		lua_pushstring(L, CPP_POINTER);
+		lua_pushlightuserdata(L, singleton);
+		lua_rawset(L, -3);
+
+		lua_pushvalue(L, -1);
+		singleton->m_luaID = luaL_ref(L, LUA_REGISTRYINDEX);
+
+		lua_pushstring(L, nname.c_str());
+		lua_pushvalue(L, -2);
+		lua_rawset(L, -4);
+	}
+	lua_pop(L, 3);
+	return 1;
+}
+
+template<typename T>
+static int Lua_CreateRef(lua_State* L, T* ref)
+{
+    std::string nname = Lua_GetName<T>();
     lua_newtable(L);
     lua_getglobal(L, "package");
     lua_getfield(L, -1,"loaded");
-    if (lua_getfield(L, -1, nname) != LUA_TTABLE)
+    if (lua_getfield(L, -1, nname.c_str()) != LUA_TTABLE)
     {
-        log("can not find the table : %s",nname);
+        log("can not find the table : %s", nname.c_str());
         lua_pop(L, 4);
         return 0;
     }
     lua_remove(L, -2);
     lua_remove(L, -2);
     lua_setmetatable(L, -2);
+	lua_pushvalue(L, -1);
     ref->m_luaID = luaL_ref(L, LUA_REGISTRYINDEX);
     
+	lua_pushstring(L, CPP_POINTER);
     lua_pushlightuserdata(L, ref);
-    lua_setfield(L, -2, CPP_POINTER);
+	lua_rawset(L, -3);
     return 1;
+}
+
+static int Lua_DeleteRef(lua_State* L, Ref* ref)
+{
+	if (ref->m_luaID > 0)
+	{
+		lua_rawgeti(L, LUA_REGISTRYINDEX, ref->m_luaID);
+		lua_pushstring(L, CPP_POINTER);
+		lua_pushnil(L);
+		lua_rawset(L, -3);
+		luaL_unref(L, LUA_REGISTRYINDEX, ref->m_luaID);
+		ref->m_luaID = 0;
+		lua_pop(L, 1);
+	}
+	return 0;
+}
+
+static void Lua_Clear(lua_State* L, int oldtop)
+{
+	int top = lua_gettop(L);
+	if (top > oldtop)
+	{
+		lua_pop(L, top - oldtop);
+	}
 }
 
 /*******************************************/
 
 static int Lua_GetInt(lua_State* L, int index)
 {
-    return lua_isnumber(L, index) ? lua_tointeger(L, index) : 0;
+    return lua_isnumber(L, index) ? (int)lua_tointeger(L, index) : 0;
 }
 
 static unsigned Lua_GetUnsign(lua_State* L, int index)
 {
-    return lua_isnumber(L, index) ? lua_tointeger(L, index) : 0;
+    return lua_isnumber(L, index) ? (unsigned)lua_tointeger(L, index) : 0;
 }
 
 static float Lua_GetFloat(lua_State* L, int index)
 {
-    return lua_isnumber(L, index) ? lua_tonumber(L, index) : 0;
+    return lua_isnumber(L, index) ? (float)lua_tonumber(L, index) : 0;
 }
 
 static double Lua_GetDouble(lua_State* L, int index)
 {
-    return lua_isnumber(L, index) ? lua_tonumber(L, index) : 0;
+    return lua_isnumber(L, index) ? (double)lua_tonumber(L, index) : 0;
 }
 
 static const char* Lua_GetString(lua_State* L, int index)
@@ -96,13 +322,21 @@ static const char* Lua_GetString(lua_State* L, int index)
     return lua_isstring(L, index) ? lua_tostring(L, index) : "";
 }
 
+static bool Lua_GetBool(lua_State* L, int index)
+{
+	return lua_isboolean(L, index) ? (bool)lua_toboolean(L, index) : false;
+}
+
 template<typename T>
 static T* Lua_GetPointer(lua_State* L, int index)
 {
     T* t = NULL;
-    if (lua_istable(L, index) && lua_getfield(L, index, CPP_POINTER) == LUA_TLIGHTUSERDATA)
+    if (lua_istable(L, index))
     {
-        t = (T*)lua_touserdata(L, index);
+		lua_pushstring(L, CPP_POINTER);
+		lua_rawget(L, index);
+        t = (T*)lua_touserdata(L, -1);
+		lua_pop(L, 1);
     }
     return t;
 }
@@ -137,6 +371,12 @@ static int Lua_SetString(lua_State* L, const char* value)
 {
     lua_pushstring(L, value);
     return 1;
+}
+
+static int Lua_SetBool(lua_State* L, bool value)
+{
+	lua_pushboolean(L, value);
+	return 1;
 }
 
 template<typename T>
@@ -408,9 +648,12 @@ static bool Lua_CallFunc(lua_State* L, int rt)
 template<typename T, typename... Args>
 static bool Lua_CallFunc(lua_State* L,int rt, const T& t, const Args&... args)
 {
+	int n = lua_gettop(L);
     const int len = sizeof...(args) + 1;
-    if (!lua_isfunction(L, -1))
-        return false;
+	if (!lua_isfunction(L, -1))
+	{
+		return false;
+	}   
     
     Lua_Pack(L, t, args...) ;
     if (lua_pcall(L, len, rt, 0) != 0 )
@@ -425,14 +668,26 @@ static bool Lua_CallFunc(lua_State* L,int rt, const T& t, const Args&... args)
 
 static bool Lua_CallRef(lua_State* L, int ref, int rt)
 {
-    lua_rawseti(L, LUA_REGISTRYINDEX, ref);
+	if (ref <= 0) return false;
+	lua_rawgeti(L, LUA_REGISTRYINDEX, ref);
+	if (!lua_isfunction(L, -1))
+	{
+		lua_pop(L, 1);
+		return false;
+	}
     return Lua_CallFunc(L, rt);
 }
 
 template<typename T, typename... Args>
 static bool Lua_CallRef(lua_State* L, int ref, int rt, const T& t, const Args&... args)
 {
-    lua_rawseti(L, LUA_REGISTRYINDEX, ref);
+	if (ref <= 0) return false;
+	lua_rawgeti(L, LUA_REGISTRYINDEX, ref);
+	if (!lua_isfunction(L, -1))
+	{
+		lua_pop(L, 1);
+		return false;
+	}
     return Lua_CallFunc(L, rt, t, args...);
 }
 

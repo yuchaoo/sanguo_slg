@@ -6,6 +6,7 @@
 
 #include<vector>
 #include <unordered_map>
+#include "Ref.h"
 
 struct event_base;
 struct evconnlistener;
@@ -23,7 +24,7 @@ struct NetObserver
         virtual void onUpdateNotify(float dt) {}
 };
 
-class NetworkManager
+class NetworkManager : public Ref
 {
 public:
     static NetworkManager* getInstance();

@@ -12,7 +12,10 @@ Ref::Ref()
 
 Ref::~Ref()
 {
-
+	if (m_luaID > 0)
+	{
+		
+	}
 }
 
 int Ref::retain()

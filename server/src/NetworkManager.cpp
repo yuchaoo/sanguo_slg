@@ -263,11 +263,11 @@ void NetworkManager::update()
 int lua_network_init(lua_State* L)
 {
     NetworkManager* mgr = Lua_GetPointer<NetworkManager>(L,1);
-    if (!mgr) return 0;
-    int port = lua_tointeger(L, 2);
-    float interval = lua_isnumber(L, 3) ? lua_tonumber(L, 3) : 1.0f;
-    mgr->init(port);
-    return 0;
+	if (!mgr)
+	{
+		return Lua_SetBool(L,false);
+	}
+    return Lua_SetBool(L,mgr->init(Lua_GetInt(L,1)));
 }
 
 int lua_network_setLuaUpdateHandler(lua_State* L)
@@ -304,8 +304,9 @@ int lua_open_network_module(lua_State* L)
         {"init",lua_network_init},
         {"setLuaUpdateHandler",lua_network_setLuaUpdateHandler },
         {"setLuaCreateConnHandler",lua_network_setLuaCreateConnHandler },
+		{"dispatch",lua_network_dispatch },
         {NULL,NULL}
     };
-    Lua_CreateModule<NetworkManager>(L, reg);
+    Lua_CreateModule<NetworkManager>(L, reg, NetworkManager::getInstance());
     return 0;
 }

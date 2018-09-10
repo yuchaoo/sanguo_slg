@@ -41,6 +41,8 @@ bool GameLua::init()
         printf("create lua_state failed!!!\n");
         return false;
     }
+    lua_newtable(m_L);
+    lua_setglobal(m_L,LUA_CPP);
 
     luaL_openlibs(m_L);
     luaopen_lpeg(m_L);

@@ -17,7 +17,7 @@ extern "C"
 
 #define CPP_POINTER "__ptr"
 
-#define CPP_TO_LUA(class) "cc"#class
+#define LUA_CPP "cpp"
 
 static int Lua_Loader(lua_State* L)
 {
@@ -184,13 +184,49 @@ inline static std::string Lua_GetName()
 	return "";
 }
 
-template<typename T>
-static int Lua_CreateModule(lua_State* L, luaL_Reg* fn)
+static int Lua_Gc(lua_State* L)
 {
-    std::string nname = Lua_GetName<T>();
-    lua_getglobal(L, "package");
-    lua_getfield(L, -1,"loaded");
-    lua_getfield(L, -1, nname.c_str());
+    lua_pushstring(L, CPP_POINTER);
+    lua_rawget(L, -2);
+    if (lua_isuserdata(L, -1))
+    {
+        Ref* ref = (Ref*)lua_touserdata(L, -1);
+        if (ref && ref->m_luaID > 0)
+        {
+            luaL_unref(L, LUA_REGISTRYINDEX, ref->m_luaID);
+            ref->m_luaID = 0;
+        }
+        lua_pushstring(L, CPP_POINTER);
+        lua_pushnil(L);
+        lua_rawset(L, 1);
+    }
+    return 0;
+}
+
+static int Lua_SetMetatable(lua_State* L, int index, const char* super)
+{
+    if (!super) return 0;
+    lua_getglobal(L, LUA_CPP);
+    lua_pushstring(L, super);
+    lua_rawget(L, -2);
+    if (lua_istable(L, -1))
+    {
+        index = index > 0 ? index : index - 2;
+        lua_setmetatable(L, index);
+    }
+    else
+    {
+        log("can not find the super : %s",super);
+    }
+    lua_pop(L, 2);
+    return 0;
+}
+
+static int Lua_CreateModule(lua_State* L, const char* nname, luaL_Reg* fn, const char* super)
+{
+    lua_getglobal(L, LUA_CPP);
+    lua_pushstring(L, nname);
+    lua_rawget(L, -2);
     if (!lua_istable(L, -1))
     {
 		lua_pop(L, 1);
@@ -203,21 +239,31 @@ static int Lua_CreateModule(lua_State* L, luaL_Reg* fn)
         lua_pushvalue(L, -2);
 		lua_rawset(L, -3);
 
-		lua_pushstring(L, nname.c_str());
-        lua_pushvalue(L, -2);
+        lua_pushstring(L, "__gc");
+        lua_pushcfunction(L, Lua_Gc);
+        lua_rawset(L, -3);
+
+        lua_getglobal(L, "package");
+        lua_getfield(L, -1, "loaded");
+
+		lua_pushstring(L, nname);
+        lua_pushvalue(L, -4);
 		lua_rawset(L, -3);
+
+        Lua_SetMetatable(L, -3, super);
+        lua_pop(L, 4);
+        return 0;
     }
-	lua_pop(L, 3);
-    return 1;
+    log("the module:%s has exist",nname);
+	lua_pop(L, 2);
+    return 0;
 }
 
-template<typename T>
-static int Lua_CreateModule(lua_State* L, luaL_Reg* fn,T* singleton)
+static int Lua_CreateModule(lua_State* L, const char* nname, luaL_Reg* fn, const char* super, Ref* singleton)
 {
-	std::string nname = Lua_GetName<T>();
-	lua_getglobal(L, "package");
-	lua_getfield(L, -1, "loaded");
-	lua_getfield(L, -1, nname.c_str());
+    lua_getglobal(L, LUA_CPP);
+    lua_pushstring(L, nname);
+    lua_rawget(L, -2);
 	if (!lua_istable(L, -1))
 	{
 		lua_pop(L, 1);
@@ -231,6 +277,17 @@ static int Lua_CreateModule(lua_State* L, luaL_Reg* fn,T* singleton)
 		lua_pushvalue(L, -2);
 		lua_rawset(L, -3);
 
+        lua_pushstring(L, "__gc");
+        lua_pushcfunction(L, Lua_Gc);
+        lua_rawset(L, -3);
+
+        lua_getglobal(L, "package");
+        lua_getfield(L, -1, "loaded");
+
+        lua_pushstring(L, nname);
+        lua_pushvalue(L, -4);
+        lua_rawset(L, -3);
+
 		lua_pushstring(L, CPP_POINTER);
 		lua_pushlightuserdata(L, singleton);
 		lua_rawset(L, -3);
@@ -238,7 +295,7 @@ static int Lua_CreateModule(lua_State* L, luaL_Reg* fn,T* singleton)
 		lua_pushvalue(L, -1);
 		singleton->m_luaID = luaL_ref(L, LUA_REGISTRYINDEX);
 
-		lua_pushstring(L, nname.c_str());
+		lua_pushstring(L, nname);
 		lua_pushvalue(L, -2);
 		lua_rawset(L, -4);
 	}
@@ -246,25 +303,13 @@ static int Lua_CreateModule(lua_State* L, luaL_Reg* fn,T* singleton)
 	return 1;
 }
 
-template<typename T>
-static int Lua_CreateRef(lua_State* L, T* ref)
+static int Lua_CreateRef(lua_State* L, const char* nname, Ref* ref)
 {
-    std::string nname = Lua_GetName<T>();
     lua_newtable(L);
-    lua_getglobal(L, "package");
-    lua_getfield(L, -1,"loaded");
-    if (lua_getfield(L, -1, nname.c_str()) != LUA_TTABLE)
-    {
-        log("can not find the table : %s", nname.c_str());
-        lua_pop(L, 4);
-        return 0;
-    }
-    lua_remove(L, -2);
-    lua_remove(L, -2);
-    lua_setmetatable(L, -2);
-	lua_pushvalue(L, -1);
+    Lua_SetMetatable(L, -1, nname);
+    lua_pushvalue(L, -1);
     ref->m_luaID = luaL_ref(L, LUA_REGISTRYINDEX);
-    
+
 	lua_pushstring(L, CPP_POINTER);
     lua_pushlightuserdata(L, ref);
 	lua_rawset(L, -3);
@@ -276,9 +321,12 @@ static int Lua_DeleteRef(lua_State* L, Ref* ref)
 	if (ref->m_luaID > 0)
 	{
 		lua_rawgeti(L, LUA_REGISTRYINDEX, ref->m_luaID);
-		lua_pushstring(L, CPP_POINTER);
-		lua_pushnil(L);
-		lua_rawset(L, -3);
+        if (lua_istable(L, -1))
+        {
+            lua_pushstring(L, CPP_POINTER);
+            lua_pushnil(L);
+            lua_rawset(L, -3);
+        }
 		luaL_unref(L, LUA_REGISTRYINDEX, ref->m_luaID);
 		ref->m_luaID = 0;
 		lua_pop(L, 1);
@@ -379,14 +427,13 @@ static int Lua_SetBool(lua_State* L, bool value)
 	return 1;
 }
 
-template<typename T>
-static int Lua_SetPointer(lua_State* L, T* ptr)
+static int Lua_SetPointer(lua_State* L, Ref* ptr, const char* nname)
 {
-    if (lua_rawgeti(L, LUA_REGISTRYINDEX, ptr->m_luaID) == LUA_TTABLE)
+    if (lua_rawgeti(L, LUA_REGISTRYINDEX, ptr->m_luaID) != LUA_TNIL)
     {
         return 1;
     }
-    return Lua_CreateObj<T>(L, ptr);
+    return Lua_CreateRef(L, nname,ptr);
 }
 
 /*****************************************************************/

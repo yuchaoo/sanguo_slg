@@ -307,6 +307,6 @@ int lua_open_network_module(lua_State* L)
 		{"dispatch",lua_network_dispatch },
         {NULL,NULL}
     };
-    Lua_CreateModule<NetworkManager>(L, reg, NetworkManager::getInstance());
+    Lua_CreateModule(L, "net", reg, NULL, NetworkManager::getInstance());
     return 0;
 }

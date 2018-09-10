@@ -246,7 +246,8 @@ static int Lua_CreateModule(lua_State* L, const char* nname, luaL_Reg* fn, const
         lua_getglobal(L, "package");
         lua_getfield(L, -1, "loaded");
 
-		lua_pushstring(L, nname);
+        std::string s = std::string(LUA_CPP) + "." + nname;
+		lua_pushstring(L, s.c_str());
         lua_pushvalue(L, -4);
 		lua_rawset(L, -3);
 
@@ -261,6 +262,7 @@ static int Lua_CreateModule(lua_State* L, const char* nname, luaL_Reg* fn, const
 
 static int Lua_CreateModule(lua_State* L, const char* nname, luaL_Reg* fn, const char* super, Ref* singleton)
 {
+    int n = lua_gettop(L);
     lua_getglobal(L, LUA_CPP);
     lua_pushstring(L, nname);
     lua_rawget(L, -2);
@@ -281,26 +283,30 @@ static int Lua_CreateModule(lua_State* L, const char* nname, luaL_Reg* fn, const
         lua_pushcfunction(L, Lua_Gc);
         lua_rawset(L, -3);
 
+        lua_pushstring(L, CPP_POINTER);
+        lua_pushlightuserdata(L, singleton);
+        lua_rawset(L, -3);
+
+        lua_pushvalue(L, -1);
+        singleton->m_luaID = luaL_ref(L, LUA_REGISTRYINDEX);
+
         lua_getglobal(L, "package");
         lua_getfield(L, -1, "loaded");
 
-        lua_pushstring(L, nname);
-        lua_pushvalue(L, -4);
-        lua_rawset(L, -3);
+        int n1 = lua_gettop(L);
 
-		lua_pushstring(L, CPP_POINTER);
-		lua_pushlightuserdata(L, singleton);
+        std::string s = std::string(LUA_CPP) + "." + nname;
+		lua_pushstring(L, s.c_str());
+		lua_pushvalue(L, -4);
 		lua_rawset(L, -3);
 
-		lua_pushvalue(L, -1);
-		singleton->m_luaID = luaL_ref(L, LUA_REGISTRYINDEX);
-
-		lua_pushstring(L, nname);
-		lua_pushvalue(L, -2);
-		lua_rawset(L, -4);
+        Lua_SetMetatable(L, -3, super);
+        lua_pop(L, 4);
+        return 0;
 	}
-	lua_pop(L, 3);
-	return 1;
+    log("the module:%s has exist", nname);
+	lua_pop(L, 2);
+	return 0;
 }
 
 static int Lua_CreateRef(lua_State* L, const char* nname, Ref* ref)
@@ -382,7 +388,7 @@ static T* Lua_GetPointer(lua_State* L, int index)
     if (lua_istable(L, index))
     {
 		lua_pushstring(L, CPP_POINTER);
-		lua_rawget(L, index);
+		lua_rawget(L, index > 0 ? index : index - 1);
         t = (T*)lua_touserdata(L, -1);
 		lua_pop(L, 1);
     }

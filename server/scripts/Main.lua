@@ -32,7 +32,7 @@ local a = This:create({
 print(string.format("id = %d",a:getId()))
 print(string.format("name = %s",a:getName()))
 
-local NetworkManager = require("cpp.NetworkManager")
+local NetworkManager = require("cpp.net")
 
 local ret = NetworkManager:init(8080)
 if ret then
@@ -40,7 +40,7 @@ if ret then
 end
 
 NetworkManager:setLuaUpdateHandler(function(dt)
-	print(string.format("lua update dt = %d",dt))
+	print(string.format("lua update dt = %f",dt))
 end)
 
 NetworkManager:dispatch()

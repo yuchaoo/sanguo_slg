@@ -2,6 +2,8 @@
 #include "LuaWrapper.h"
 #include "GameUtil.h"
 #include "NetworkManager.h"
+#include "Connection.h"
+#include "Log.h"
 #include <fstream>
 
 extern "C"
@@ -52,6 +54,7 @@ bool GameLua::init()
     setLuaLoader(Lua_Loader, 2);
 	setLuaFunc();
     lua_open_network_module(m_L);
+    lua_open_connection_module(m_L);
 
     return true;
 }
@@ -67,7 +70,7 @@ bool GameLua::luaMain()
     if (Lua_Loader(m_L) == 0)
     {
         const char* err = lua_tostring(m_L, -1);
-        log("load main.lua failed, err:%s", err);
+        g_log("load main.lua failed, err:%s", err);
         lua_pop(m_L, 1);
         return false;
     }
@@ -110,12 +113,12 @@ void GameLua::addLuaPath(const char* dirpath)
     lua_setfield(m_L, -3, "path");
     lua_pop(m_L, 3);
 
-    log("modify lua path:");
+    g_log("modify lua path:");
     std::vector<std::string> paths;
     Lua_Split(str.c_str(), ';', paths);
     for (size_t i = 0; i < paths.size(); ++i)
     {
-        log(paths[i].c_str());
+        g_log(paths[i].c_str());
     }
 }
 

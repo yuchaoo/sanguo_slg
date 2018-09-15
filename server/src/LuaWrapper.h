@@ -2,7 +2,7 @@
 #define _LUA_WRAPPER_
 #include "GameUtil.h"
 #include "Ref.h"
-#include<regex>
+#include "Log.h"
 
 extern "C"
 {
@@ -14,6 +14,7 @@ extern "C"
 #include <string>
 #include <assert.h>
 #include<iostream>
+#include<regex>
 
 #define CPP_POINTER "__ptr"
 
@@ -42,7 +43,7 @@ static int Lua_Loader(lua_State* L)
 	FILE* file = fopen(filepath.c_str(), "rb");
 	if (!file)
 	{
-		log("read the file %s failed!!", filepath.c_str());
+		g_log("read the file %s failed!!", filepath.c_str());
 		return 0;
 	}
 
@@ -70,7 +71,7 @@ static int Lua_Loader(lua_State* L)
 	if (ret != 0)
 	{
 		const char* str = lua_tostring(L, -1);
-		log("load script %s failed!!!, msg:%s", path.c_str(), str);
+		g_log("load script %s failed!!!, msg:%s", path.c_str(), str);
 		lua_pop(L, 1);
 		delete[] buffer;
 		return 0;
@@ -93,13 +94,13 @@ static int Lua_Class(lua_State* L)
 		lua_getfield(L, -1, super);
 		if (lua_isnil(L, -1))
 		{
-			log("can not create class %s , reason : can not find the super class %s", dir, super);
+			g_log("can not create class %s , reason : can not find the super class %s", dir, super);
 			return 0;
 		}
 		lua_getfield(L, -2, dir);
 		if (lua_isnil(L, -1))
 		{
-			log("%s have be a class", dir);
+			g_log("%s have be a class", dir);
 			return 2;
 		}
 		lua_pop(L, 1);
@@ -124,7 +125,7 @@ static int Lua_Class(lua_State* L)
 		lua_getfield(L, -2, dir);
 		if (!lua_isnil(L, -1))
 		{
-			log("%s have be a class", dir);
+			g_log("%s have be a class", dir);
 			return 1;
 		}
 		lua_pop(L, 1);
@@ -165,7 +166,7 @@ static int Lua_Print(lua_State * L)
 		out.append(s, sz);
 		lua_pop(L, 1);  
 	}
-	log(out.c_str());
+	g_log(out.c_str());
 	return 0;
 }
 
@@ -216,7 +217,7 @@ static int Lua_SetMetatable(lua_State* L, int index, const char* super)
     }
     else
     {
-        log("can not find the super : %s",super);
+        g_log("can not find the super : %s",super);
     }
     lua_pop(L, 2);
     return 0;
@@ -255,7 +256,7 @@ static int Lua_CreateModule(lua_State* L, const char* nname, luaL_Reg* fn, const
         lua_pop(L, 4);
         return 0;
     }
-    log("the module:%s has exist",nname);
+    g_log("the module:%s has exist",nname);
 	lua_pop(L, 2);
     return 0;
 }
@@ -304,7 +305,7 @@ static int Lua_CreateModule(lua_State* L, const char* nname, luaL_Reg* fn, const
         lua_pop(L, 4);
         return 0;
 	}
-    log("the module:%s has exist", nname);
+    g_log("the module:%s has exist", nname);
 	lua_pop(L, 2);
 	return 0;
 }
@@ -592,7 +593,7 @@ static bool Lua_DoFile(lua_State* L, const char* filename,lua_CFunction fn)
     if (luaL_loadfile(L, filename))
     {
         const char* err = lua_tostring(L, -1);
-        log("load file %s failed, err:%s",filename,err);
+        g_log("load file %s failed, err:%s",filename,err);
         lua_pop(L, fn ? 2 : 1);
         return false;
     }

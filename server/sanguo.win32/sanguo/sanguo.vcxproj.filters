@@ -132,9 +132,6 @@
     <ClInclude Include="..\..\src\NetworkManager.h">
       <Filter>src</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\ProtocalManager.h">
-      <Filter>src</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\src\GameLua.h">
       <Filter>src</Filter>
     </ClInclude>
@@ -145,6 +142,9 @@
       <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\Connection.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\Log.h">
       <Filter>src</Filter>
     </ClInclude>
   </ItemGroup>
@@ -161,9 +161,6 @@
     <ClCompile Include="..\..\src\NetworkManager.cpp">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\ProtocalManager.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\GameLua.cpp">
       <Filter>src</Filter>
     </ClCompile>
@@ -174,6 +171,9 @@
       <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\external\pbc\binding\lua53\pbc-lua53.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Log.cpp">
       <Filter>src</Filter>
     </ClCompile>
   </ItemGroup>

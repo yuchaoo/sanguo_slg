@@ -1,4 +1,4 @@
-#include"GameUtil.h"
+﻿#include"GameUtil.h"
 #include<stdio.h>
 #include<string.h>
 #include<stdarg.h>
@@ -7,15 +7,15 @@
 #include <direct.h>
 #endif
 
-void log(const char* format,...)
+/*void log(const char* format,...)
 {
-        static char text[1024];
-        va_list ap;
-        va_start(ap, format);
-        vsnprintf(text,sizeof(text),format,ap);
-        va_end(ap);
-        printf("%s\n",text);
-}
+    static char text[1024];
+    va_list ap;
+    va_start(ap, format);
+    vsnprintf(text, sizeof(text), format, ap);
+    va_end(ap);
+    printf("%s\n", text);
+}*/
 
 void getDirList(const char* dirname, std::vector<string>& outList)
 {

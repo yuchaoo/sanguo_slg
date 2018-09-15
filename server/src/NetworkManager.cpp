@@ -5,6 +5,8 @@
 #include<chrono>
 #include <assert.h>
 #include <signal.h>
+#include <thread>
+#include <conio.h>
 
 #include "event.h"
 #include "listener.h"
@@ -14,6 +16,7 @@
 #include "Connection.h"
 #include "GameLua.h"
 #include "LuaWrapper.h"
+#include "Log.h"
 
 #ifdef _WIN32
 #include<WinSock2.h>
@@ -33,10 +36,15 @@ void evtimer(int fd, short event, void* data)
 
 void evsignal(evutil_socket_t sig, short events, void *user_data)
 {
-    printf("to exit in 2 seconds.\n");
+    g_log("to exit in 2 seconds.\n");
     struct event_base *base = (struct event_base *)user_data;
     struct timeval delay = { 2, 0 };
     event_base_loopexit(base, &delay);
+}
+void evquit(evutil_socket_t fd, short evetns, void * data)
+{
+    struct event_base* base = (struct event_base*) data;
+    event_base_loopbreak(base);
 }
 
 void eventLog(int severity, const char *msg)
@@ -60,7 +68,7 @@ void eventLog(int severity, const char *msg)
         severity_str = "???";
         break;
     }
-    fprintf(stderr, "[%s] %s\n", severity_str, msg); 
+    g_log("[%s] %s\n", severity_str, msg);
 }
 
 /********************************************************/
@@ -76,7 +84,7 @@ NetworkManager::NetworkManager()
 ,m_eventBase(NULL)
 ,m_listenAddr(NULL)
 ,m_timer(NULL)
-, m_luaAddConnRefId(0)
+, m_luaCreateConnRefId(0)
 ,m_luaUpdateRefId(0)
 {
     m_timeval.tv_sec = m_timeval.tv_usec = 0;
@@ -133,12 +141,12 @@ void NetworkManager::setLuaUpdateRefId(int ref)
 
 void NetworkManager::setLuaCreateConnRefId(int ref)
 {
-    if (m_luaAddConnRefId > 0)
+    if (m_luaCreateConnRefId > 0)
     {
         lua_State* L = GameLua::getInstance()->getLuaState();
-        luaL_unref(L, LUA_REGISTRYINDEX, m_luaAddConnRefId);
+        luaL_unref(L, LUA_REGISTRYINDEX, m_luaCreateConnRefId);
     }
-    m_luaAddConnRefId = ref;
+    m_luaCreateConnRefId = ref;
 }
 
 bool NetworkManager::init(int port)
@@ -150,7 +158,7 @@ bool NetworkManager::init(int port)
     m_eventBase = event_base_new();
     if(!m_eventBase)
     {
-        printf("Could not initialize libevent\n");
+        g_log("Could not initialize libevent");
         return false;
     }
 
@@ -160,7 +168,7 @@ bool NetworkManager::init(int port)
     if(!m_listener)
     {
         event_base_free(m_eventBase);
-        printf("Could not create a listener\n");
+        g_log("Could not create a listener");
         return false;
     }
 
@@ -182,7 +190,53 @@ bool NetworkManager::init(int port)
         event_base_free(m_eventBase);
         return false;
     }
+    
+    //监听终端输入事件
+    /*struct timeval tv1 = {5,0 };
+    struct event* ev_cmd = event_new(m_eventBase, -1,  EV_PERSIST, evquit, m_eventBase);
+    if (!ev_cmd || event_add(ev_cmd, &tv1) < 0)
+    {
+        evconnlistener_free(m_listener);
+        event_base_free(m_eventBase);
+        return false;
+    }*/
+
+    initGmThread();
+
     return true;
+}
+
+void NetworkManager::initGmThread() 
+{
+    std::thread thread([=](NetworkManager* mgr) {
+        bool isStart = false;
+        char text[1024];
+        int index = 0;
+        while (1)
+        {
+            if (_kbhit())
+            {
+                if (!isStart)
+                {
+                    g_log.setBlock(true);
+                    char c = _getch();
+                    isStart = true;
+                    cout << "请输入你的命令:" << endl;
+                    memset(text, 0, sizeof(text));
+                    index = 0;
+                }
+                else
+                {
+                    cin.getline(text, sizeof(text));
+                    g_log.setBlock(false);
+                    isStart = false;
+                    index = 0;
+                    mgr->addGmCommand(text);
+                }
+            }
+        }
+    },this);
+    thread.detach();
 }
 
 void NetworkManager::listener(struct evconnlistener* listener, evutil_socket_t fd,struct sockaddr* addr)
@@ -190,7 +244,7 @@ void NetworkManager::listener(struct evconnlistener* listener, evutil_socket_t f
     struct bufferevent* be = bufferevent_socket_new(m_eventBase,fd, BEV_OPT_CLOSE_ON_FREE);
     if(!be)
     {
-        printf("Could not create a bufferevent\n");
+        g_log("Could not create a bufferevent");
         event_base_loopbreak(m_eventBase);
         return ;
     }
@@ -206,7 +260,7 @@ void NetworkManager::addConnection(struct bufferevent* be)
     {
         (*iter)->onConnectionCreated(conn);
     }
-    //Lua_CallRef(L,m_luaAddConnRefId,0,)
+    Lua_CallRef(L, m_luaCreateConnRefId, 0);
 }
 
 void NetworkManager::removeConnection(struct bufferevent* be)
@@ -226,15 +280,46 @@ void NetworkManager::removeConnection(struct bufferevent* be)
     }
 }
 
+void NetworkManager::addGmCommand(const char* gm)
+{
+    m_gmmutex.lock();
+    m_gmlist.push_back(gm);
+    m_gmmutex.unlock();
+}
+
+void NetworkManager::handleGm()
+{
+    std::string gm;
+    m_gmmutex.lock();
+    if (m_gmlist.size() > 0)
+    {
+        gm = m_gmlist.front();
+        m_gmlist.pop_front();
+    }
+    m_gmmutex.unlock();
+    if (gm.empty())
+    {
+        return;
+    }
+    g_log("***************handle gm : %s********************",gm.c_str());
+    if (gm == "quit")
+    {
+        
+        event_base_loopbreak(m_eventBase);
+    }
+    g_log("***********************handle gm end**********************");
+}
+
 void NetworkManager::dispatch()
 {
-    log("dispatch...");
     if(m_eventBase && m_listener)
     {
-        printf("network dispatch...\n");
+        g_log("network dispatch...");
         event_base_dispatch(m_eventBase);
+        event_del(m_timer);
         evconnlistener_free(m_listener);
         event_base_free(m_eventBase);
+        m_eventBase = NULL;
     }
 }
 
@@ -255,7 +340,9 @@ void NetworkManager::update()
     }
     lua_State* L = GameLua::getInstance()->getLuaState();
     Lua_CallRef(L, m_luaUpdateRefId, 0, escape);
-	log("update escape = %f", escape);
+
+    handleGm();
+	g_log("update escape = %f", escape);
 }
 
 /**************************************************************/

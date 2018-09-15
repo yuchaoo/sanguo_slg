@@ -5,6 +5,7 @@
 #include "event_struct.h"
 
 #include<vector>
+#include<mutex>
 #include <unordered_map>
 #include "Ref.h"
 
@@ -36,6 +37,9 @@ public:
     void listener(struct evconnlistener* listener, evutil_socket_t, struct sockaddr* addr);
     void addConnection(struct bufferevent* be);
     void removeConnection(struct bufferevent* be);
+    void initGmThread();
+    void handleGm();
+    void addGmCommand(const char* gm);
     void dispatch();
     void update();
 public:
@@ -48,11 +52,13 @@ private:
     event_base* m_eventBase;
     struct event* m_timer;
     struct timeval m_timeval;
+    std::mutex m_gmmutex;
     int m_luaUpdateRefId;
-    int m_luaAddConnRefId;
+    int m_luaCreateConnRefId;
     sockaddr_in* m_listenAddr;
     std::vector<NetObserver*> m_observers;
     std::vector<Connection*> m_connects;
+    std::list<std::string> m_gmlist;
 };
 
 #endif // _NET_WORK_MANAGER_

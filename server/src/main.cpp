@@ -4,6 +4,7 @@
 #include "Ref.h"
 #include "GameLua.h"
 #include "GameUtil.h"
+#include "log.h"
 
 extern "C"
 {
@@ -16,22 +17,22 @@ int main()
 {
     if (!GameLua::getInstance()->init())
     {
-        log("gamelua int failed!!!\n");
+        g_log("gamelua int failed!!!\n");
         return 1;
     }
-	GameLua::getInstance()->luaMain();
+	//GameLua::getInstance()->luaMain();
 
-    /*bool ret = NetworkManager::getInstance()->init(6666);
+    bool ret = NetworkManager::getInstance()->init(6666);
     if (!ret)
     {
-        log("network init failed!!!\n");
+        g_log("network init failed!!!\n");
         return 1;
     }
-    log("network init secceed\n");
+    g_log("network init secceed\n");
 
-    GameLua::getInstance()->luaMain();
-    log("lua main exe finish");
-    NetworkManager::getInstance()->dispatch();*/
+   // GameLua::getInstance()->luaMain();
+    g_log("lua main exe finish");
+    NetworkManager::getInstance()->dispatch();
 
     return 0;
 }

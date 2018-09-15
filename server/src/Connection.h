@@ -74,4 +74,6 @@ private:
     std::list<ProtoData*> m_prolist;
 };
 
+int lua_open_connection_module(lua_State* L);
+
 #endif

@@ -7,6 +7,7 @@
 #include "GameUtil.h"
 #include "GameLua.h"
 #include "LuaWrapper.h"
+#include "Log.h"
 
 int Connection::s_maxRewriteCount = 3;
 int ProtoData::s_serilId = 0;
@@ -164,7 +165,7 @@ void Connection::send(int cmd, const char* data, size_t len)
 
 void Connection::connected()
 {
-    log("connected...\n");
+    g_log("connected...\n");
     Lua_CallRef(m_l, m_luaConnectedRefId, 0);
 }
 
@@ -204,14 +205,14 @@ void Connection::read()
 
 void Connection::finish()
 {
-    log("the connection fnish");
+    g_log("the connection fnish");
     Lua_CallRef(m_l, m_luaFinishRefId, 0);
     this->clear();
 }
 
 void Connection::close()
 {
-    log("the conncetion close");
+    g_log("the conncetion close");
     Lua_CallRef(m_l, m_luaCloseRefId, 0);
     this->clear();
 }
@@ -283,4 +284,125 @@ void Connection::update(float dt)
     {
         this->write();
     }
+}
+/***************************************/
+
+int lua_connection_init(lua_State* L)
+{
+    Connection* connect = Lua_GetPointer<Connection>(L, 1);
+    if (!connect) return 0;
+    return Lua_SetBool(L, connect->init());
+}
+
+int lua_connection_send(lua_State* L)
+{
+    Connection* connect = Lua_GetPointer<Connection>(L, 1);
+    if (!connect) return 0;
+    int cmd = Lua_GetInt(L, 2);
+    const char* msg = Lua_GetString(L, 3);
+    size_t len = Lua_GetUnsign(L, 4);
+    if (cmd > 0 && len > 0)
+        connect->send(cmd, msg, len);
+    else
+        g_log("send cmd:%d failed", cmd);
+    return 0;
+}
+
+int lua_connection_setMaxRewriteCount(lua_State* L)
+{
+    Connection* connect = Lua_GetPointer<Connection>(L, 1);
+    if (!connect) return 0;
+    int count = Lua_GetInt(L, 2);
+    connect->setMaxRewriteCount(count);
+    return 0;
+}
+int lua_connection_setLuaConnectedRefId(lua_State* L)
+{
+    Connection* connect = Lua_GetPointer<Connection>(L, 1);
+    if (!connect) return 0;
+    if (lua_isfunction(L, 2))
+    {
+        int luaID = luaL_ref(L, LUA_REGISTRYINDEX);
+        connect->setLuaConnectedRefId(luaID);
+    }
+    else
+    {
+        g_log("set lua connected handler failed");
+    }
+    return 0;
+}
+int lua_connection_setLuaRecvRefId(lua_State* L)
+{
+    Connection* connect = Lua_GetPointer<Connection>(L, 1);
+    if (!connect) return 0;
+    if (lua_isfunction(L, 2))
+    {
+        int luaID = luaL_ref(L, LUA_REGISTRYINDEX);
+        connect->setLuaRecvRefId(luaID);
+    }
+    else
+    {
+        g_log("set lua recv handler failed");
+    }
+    return 0;
+}
+int lua_connection_setLuaCloseRefId(lua_State* L)
+{
+    Connection* connect = Lua_GetPointer<Connection>(L, 1);
+    if (!connect) return 0;
+    if (lua_isfunction(L, 2))
+    {
+        int luaID = luaL_ref(L, LUA_REGISTRYINDEX);
+        connect->setLuaCloseRefId(luaID);
+    }
+    else
+    {
+        g_log("set lua close handler failed");
+    }
+    return 0;
+}
+int lua_connection_setLuaFinishRefId(lua_State* L)
+{
+    Connection* connect = Lua_GetPointer<Connection>(L, 1);
+    if (!connect) return 0;
+    if (lua_isfunction(L, 2))
+    {
+        int luaID = luaL_ref(L, LUA_REGISTRYINDEX);
+        connect->setLuaFinishRefId(luaID);
+    }
+    else
+    {
+        g_log("set lua finish handler failed");
+    }
+    return 0;
+}
+int lua_connection_setLuaWTimeoutRefId(lua_State* L)
+{
+    Connection* connect = Lua_GetPointer<Connection>(L, 1);
+    if (!connect) return 0;
+    if (lua_isfunction(L, 2))
+    {
+        int luaID = luaL_ref(L, LUA_REGISTRYINDEX);
+        connect->setLuaWTimeoutRefId(luaID);
+    }
+    else
+    {
+        g_log("set lua wtimeout handler failed");
+    }
+    return 0;
+}
+int lua_open_connection_module(lua_State* L)
+{
+    luaL_Reg reg[] = {
+        {"init",lua_connection_init },
+        {"send",lua_connection_send },
+        {"setMaxRewriteCount",lua_connection_setMaxRewriteCount },
+        {"setLuaConnectedHandler",lua_connection_setLuaConnectedRefId },
+        {"setLuaRecvHandler",lua_connection_setLuaRecvRefId },
+        {"setLuaCloseHandler",lua_connection_setLuaCloseRefId },
+        {"setLuaFinishHandler",lua_connection_setLuaFinishRefId },
+        {"setLuaTimeoutHandler",lua_connection_setLuaWTimeoutRefId },
+        {NULL,NULL}
+    };
+    return Lua_CreateModule(L, "Connection", reg, NULL);
 }

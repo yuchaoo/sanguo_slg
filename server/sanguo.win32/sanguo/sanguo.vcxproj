@@ -159,9 +159,9 @@
     <ClInclude Include="..\..\src\EventDispatcher.h" />
     <ClInclude Include="..\..\src\GameLua.h" />
     <ClInclude Include="..\..\src\GameUtil.h" />
+    <ClInclude Include="..\..\src\Log.h" />
     <ClInclude Include="..\..\src\LuaWrapper.h" />
     <ClInclude Include="..\..\src\NetworkManager.h" />
-    <ClInclude Include="..\..\src\ProtocalManager.h" />
     <ClInclude Include="..\..\src\Ref.h" />
   </ItemGroup>
   <ItemGroup>
@@ -172,9 +172,9 @@
     <ClCompile Include="..\..\src\EventDispatcher.cpp" />
     <ClCompile Include="..\..\src\GameLua.cpp" />
     <ClCompile Include="..\..\src\GameUtil.cpp" />
+    <ClCompile Include="..\..\src\Log.cpp" />
     <ClCompile Include="..\..\src\main.cpp" />
     <ClCompile Include="..\..\src\NetworkManager.cpp" />
-    <ClCompile Include="..\..\src\ProtocalManager.cpp" />
     <ClCompile Include="..\..\src\Ref.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -4,6 +4,7 @@
 #include "NetworkManager.h"
 #include "Connection.h"
 #include "Log.h"
+#include "FileSystem.h"
 #include <fstream>
 
 extern "C"
@@ -50,8 +51,10 @@ bool GameLua::init()
     luaopen_lpeg(m_L);
     luaopen_protobuf_c(m_L);
 
-    addLuaPath("./script");
-    setLuaLoader(Lua_Loader, 2);
+    //setLuaLoader(Lua_Loader, 2);
+    const string & workspace = FileSystem::getInstance()->getWorkspace();
+    addLuaPath((workspace + "/scripts").c_str());
+
 	setLuaFunc();
     lua_open_network_module(m_L);
     lua_open_connection_module(m_L);
@@ -66,14 +69,20 @@ lua_State* GameLua::getLuaState()
 
 bool GameLua::luaMain()
 {
-	lua_pushstring(m_L, "Main.lua");
-    if (Lua_Loader(m_L) == 0)
+    FileSystem* fs = FileSystem::getInstance();
+    size_t size = 0;
+
+    string path = fs->getLuaFilePath("Main.lua");
+    auto ptr = fs->getFileData(path.c_str(), size);
+
+    if (luaL_loadbuffer(m_L,(const char*)ptr.get(),size,"Main") > 0)
     {
         const char* err = lua_tostring(m_L, -1);
         g_log("load main.lua failed, err:%s", err);
         lua_pop(m_L, 1);
         return false;
     }
+
     if (lua_pcall(m_L, 0, 0, 0))
     {
         const char* err = lua_tostring(m_L, -1);

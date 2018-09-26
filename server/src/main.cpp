@@ -5,6 +5,7 @@
 #include "GameLua.h"
 #include "GameUtil.h"
 #include "log.h"
+#include "FileSystem.h"
 
 extern "C"
 {
@@ -13,14 +14,25 @@ extern "C"
 #include "lauxlib.h"
 }
 
-int main()
+int main(int argc, const char** argv)
 {
+    if (argc < 2)
+    {
+        g_log("arg is not enough");
+        return 0;
+    }
+    const char* workpath = argv[1];
+
+    FileSystem::getInstance()->setWorkspace(workpath);
+
     if (!GameLua::getInstance()->init())
     {
         g_log("gamelua int failed!!!\n");
         return 1;
     }
-	//GameLua::getInstance()->luaMain();
+    
+
+	/*GameLua::getInstance()->luaMain();
 
     bool ret = NetworkManager::getInstance()->init(6666);
     if (!ret)
@@ -29,10 +41,11 @@ int main()
         return 1;
     }
     g_log("network init secceed\n");
+    */
 
-   // GameLua::getInstance()->luaMain();
-    g_log("lua main exe finish");
-    NetworkManager::getInstance()->dispatch();
+    GameLua::getInstance()->luaMain();
+    //g_log("lua main exe finish");
+    //NetworkManager::getInstance()->dispatch();
 
     return 0;
 }

@@ -1,4 +1,7 @@
 ﻿#pragma once
+#include<string>
+#include<share.h>
+#include<memory>
 extern "C"
 {
 #include "lua.h"
@@ -18,8 +21,10 @@ public:
     bool luaMain();
     void clear();
 private:
+
     GameLua();
     ~GameLua();
 private:
     lua_State* m_L;
+    std::string m_luapath;
 };

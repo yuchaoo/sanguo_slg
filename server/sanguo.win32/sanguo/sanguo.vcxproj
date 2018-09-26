@@ -157,6 +157,7 @@
     <ClInclude Include="..\..\..\external\rapidjson\writer.h" />
     <ClInclude Include="..\..\src\Connection.h" />
     <ClInclude Include="..\..\src\EventDispatcher.h" />
+    <ClInclude Include="..\..\src\FileSystem.h" />
     <ClInclude Include="..\..\src\GameLua.h" />
     <ClInclude Include="..\..\src\GameUtil.h" />
     <ClInclude Include="..\..\src\Log.h" />
@@ -170,6 +171,7 @@
     </ClCompile>
     <ClCompile Include="..\..\src\Connection.cpp" />
     <ClCompile Include="..\..\src\EventDispatcher.cpp" />
+    <ClCompile Include="..\..\src\FileSystem.cpp" />
     <ClCompile Include="..\..\src\GameLua.cpp" />
     <ClCompile Include="..\..\src\GameUtil.cpp" />
     <ClCompile Include="..\..\src\Log.cpp" />

@@ -3,6 +3,8 @@
 #include "GameUtil.h"
 #include "Ref.h"
 #include "Log.h"
+#include "GameLua.h"
+#include "FileSystem.h"
 
 extern "C"
 {
@@ -15,6 +17,7 @@ extern "C"
 #include <assert.h>
 #include<iostream>
 #include<regex>
+#include<share.h>
 
 #define CPP_POINTER "__ptr"
 
@@ -25,58 +28,18 @@ static int Lua_Loader(lua_State* L)
 	std::string path = lua_tostring(L, -1);
 	if (path.empty())
 		return 0;
-	size_t end = path.rfind(".lua");
 
-	std::string tmp = path;
-	if (end != std::string::npos)
-		tmp = path.substr(0, end);
-
-	size_t pos = tmp.find(".");
-	while (pos != std::string::npos)
-	{
-		tmp.replace(pos, pos + 1, "/");
-		pos = tmp.find(".", pos + 1);
-	}
-
-	std::string filepath = std::string("./scripts/") + tmp + ".lua";
-
-	FILE* file = fopen(filepath.c_str(), "rb");
-	if (!file)
-	{
-		g_log("read the file %s failed!!", filepath.c_str());
-		return 0;
-	}
-
-	fseek(file, 0, SEEK_END);
-	size_t size = ftell(file);
-	fseek(file, 0, SEEK_SET);
-
-	unsigned char* buffer = new  unsigned char[size];
-	size = fread(buffer, sizeof(char), size, file);
-	fclose(file);
-
-	unsigned char* content = buffer;
-	size_t contentLen = size;
-	if (size >= 3)
-	{
-		unsigned bom = buffer[0] | (buffer[1] << 8) | (buffer[2] << 16);
-		if (bom == 0xBFBBEF || bom == 0xEFBBBF)
-		{
-			content += 3;
-			contentLen -= 3;
-		}
-	}
-
-	int ret = luaL_loadbuffer(L, (char*)content, contentLen, path.c_str());
+    size_t size = 0;
+    std::string filepath = FileSystem::getInstance()->getLuaFilePath(path);
+    auto buffer = FileSystem::getInstance()->getFileData(filepath.c_str(), size);
+	int ret = luaL_loadbuffer(L, (char*)buffer.get(), size, path.c_str());
 	if (ret != 0)
 	{
 		const char* str = lua_tostring(L, -1);
 		g_log("load script %s failed!!!, msg:%s", path.c_str(), str);
 		lua_pop(L, 1);
-		delete[] buffer;
 		return 0;
 	}
-	delete[] buffer;
 	return 1;
 }
 

@@ -147,6 +147,9 @@
     <ClInclude Include="..\..\src\Log.h">
       <Filter>src</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\FileSystem.h">
+      <Filter>src</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\main.cpp">
@@ -174,6 +177,9 @@
       <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\Log.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\FileSystem.cpp">
       <Filter>src</Filter>
     </ClCompile>
   </ItemGroup>

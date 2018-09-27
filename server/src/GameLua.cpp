@@ -51,9 +51,9 @@ bool GameLua::init()
     luaopen_lpeg(m_L);
     luaopen_protobuf_c(m_L);
 
-    //setLuaLoader(Lua_Loader, 2);
-    const string & workspace = FileSystem::getInstance()->getWorkspace();
-    addLuaPath((workspace + "/scripts").c_str());
+    setLuaLoader(Lua_Loader, 2);
+    const string & scriptsdir = FileSystem::getInstance()->getScriptsDirectory();
+    addLuaPath(scriptsdir.c_str());
 
 	setLuaFunc();
     lua_open_network_module(m_L);
@@ -73,24 +73,24 @@ bool GameLua::luaMain()
     size_t size = 0;
 
     string path = fs->getLuaFilePath("Main.lua");
-    auto ptr = fs->getFileData(path.c_str(), size);
-
-    if (luaL_loadbuffer(m_L,(const char*)ptr.get(),size,"Main") > 0)
+    int ret = luaL_loadfile(m_L, path.c_str());
+    if (ret)
     {
         const char* err = lua_tostring(m_L, -1);
         g_log("load main.lua failed, err:%s", err);
         lua_pop(m_L, 1);
         return false;
     }
-
-    if (lua_pcall(m_L, 0, 0, 0))
+    
+    ret = lua_pcall(m_L, 0, LUA_MULTRET, 0);
+    if (ret)
     {
         const char* err = lua_tostring(m_L, -1);
-        printf("execute file failed , err: %s\n", err);
+        g_log("execute file failed , err: %s\n", err);
         lua_pop(m_L, 1);
         return false;
     }
-    printf("lua main ----------");
+    g_log("-------------lua main----------");
     return true;
 }
 
@@ -116,7 +116,7 @@ void GameLua::addLuaPath(const char* dirpath)
     lua_getfield(m_L, -1, "path");
 
     const char* path = lua_tostring(m_L, -1);
-    std::string str = std::string(dirpath) + "/?.lua;" + std::string(dirpath) + "/?;" + path;
+    std::string str = std::string(dirpath) + "?.lua;" + std::string(dirpath) + "?;" + path;
 
     lua_pushstring(m_L, str.c_str());
     lua_setfield(m_L, -3, "path");
@@ -134,7 +134,7 @@ void GameLua::addLuaPath(const char* dirpath)
 void GameLua::setLuaFunc()
 {
 	luaL_Reg reg[] = {
-		{"class",Lua_Class},
+		{"cppclass",Lua_Class},
 		{"print",Lua_Print},
 		{NULL,NULL}
 	};

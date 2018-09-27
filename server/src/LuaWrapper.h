@@ -29,10 +29,18 @@ static int Lua_Loader(lua_State* L)
 	if (path.empty())
 		return 0;
 
+    auto fs = FileSystem::getInstance();
+
     size_t size = 0;
-    std::string filepath = FileSystem::getInstance()->getLuaFilePath(path);
-    auto buffer = FileSystem::getInstance()->getFileData(filepath.c_str(), size);
-	int ret = luaL_loadbuffer(L, (char*)buffer.get(), size, path.c_str());
+    std::string filepath = fs->getLuaFilePath(path);
+    auto buffer = fs->getFileData(filepath.c_str(), size);
+    if (buffer.get() == NULL)
+    {
+        g_log("load the lua file %s failed!!!",filepath.c_str());
+        return 0;
+    }
+    g_log("load the lua file : %s", filepath.c_str());
+	int ret = luaL_loadbuffer(L, (char*)buffer.get(), size, ("@" + filepath).c_str());
 	if (ret != 0)
 	{
 		const char* str = lua_tostring(L, -1);

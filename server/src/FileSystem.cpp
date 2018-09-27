@@ -20,7 +20,17 @@ FileSystem::~FileSystem()
 
 void FileSystem::setWorkspace(const char* workspace) 
 {
-    m_workspace = workspace; 
+    string s = workspace;
+    size_t pos = s.find("\\");
+    while (pos != string::npos)
+    {
+        s.replace(pos, 1, "/");
+        pos = s.find("\\");
+    }
+    if (s[s.length() - 1] != '/')
+        s.append("/");
+    m_workspace = s; 
+    m_scriptsdir = m_workspace + "scripts/";
     g_log("set the workspace : %s", m_workspace.c_str());
 }
 
@@ -39,10 +49,27 @@ std::string FileSystem::getLuaFilePath(const string& path)
     size_t pos = tmp.find(".");
     while (pos != std::string::npos)
     {
-        tmp.replace(pos, pos + 1, "/");
+        tmp.replace(pos, 1, "/");
         pos = tmp.find(".", pos + 1);
     }
     return m_workspace + "scripts/" + tmp + ".lua";
+}
+
+std::string FileSystem::getLuaFileRelativePath(const string& file)
+{
+    if (file.rfind(".lua") == std::string::npos)
+        return "scripts/" + file + ".lua";
+    return "scripts/" + file;
+}
+
+const std::string& FileSystem::getWorkspace() const
+{
+    return m_workspace;
+}
+
+const std::string& FileSystem::getScriptsDirectory() const
+{
+    return m_scriptsdir;
 }
 
 std::shared_ptr<unsigned char> FileSystem::getFileData(const char* filepath, size_t& size)
@@ -58,7 +85,7 @@ std::shared_ptr<unsigned char> FileSystem::getFileData(const char* filepath, siz
     size = ftell(file);
     fseek(file, 0, SEEK_SET);
 
-    char text[3];
+    unsigned char text[3];
     if (size >= 3)
     {
         fread(text, 1, 3, file);

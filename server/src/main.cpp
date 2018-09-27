@@ -22,7 +22,6 @@ int main(int argc, const char** argv)
         return 0;
     }
     const char* workpath = argv[1];
-
     FileSystem::getInstance()->setWorkspace(workpath);
 
     if (!GameLua::getInstance()->init())
@@ -30,22 +29,7 @@ int main(int argc, const char** argv)
         g_log("gamelua int failed!!!\n");
         return 1;
     }
-    
-
-	/*GameLua::getInstance()->luaMain();
-
-    bool ret = NetworkManager::getInstance()->init(6666);
-    if (!ret)
-    {
-        g_log("network init failed!!!\n");
-        return 1;
-    }
-    g_log("network init secceed\n");
-    */
-
+  
     GameLua::getInstance()->luaMain();
-    //g_log("lua main exe finish");
-    //NetworkManager::getInstance()->dispatch();
-
     return 0;
 }

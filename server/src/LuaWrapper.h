@@ -23,6 +23,25 @@ extern "C"
 
 #define LUA_CPP "cpp"
 
+static int Lua_Error(lua_State* L)
+{
+    string str;
+    int top = lua_gettop(L);
+    const char* err = lua_tostring(L, -1);
+    luaL_traceback(L, L, err, 0);
+    int top1 = lua_gettop(L);
+    for (int i = top + 1; i <= top1; ++i)
+    {
+        const char* e = lua_tostring(L, i);
+        str += e;
+        if (i != top1) str += "\n";
+    }
+    g_log("\n/***********************trace back start****************************/");
+    g_log(str.c_str());
+    g_log("/***********************trace back ended****************************/");
+    return 0;
+}
+
 static int Lua_Loader(lua_State* L)
 {
 	std::string path = lua_tostring(L, -1);
@@ -181,21 +200,23 @@ static int Lua_SetMetatable(lua_State* L, int index, const char* super)
     lua_getglobal(L, LUA_CPP);
     lua_pushstring(L, super);
     lua_rawget(L, -2);
+
     if (lua_istable(L, -1))
     {
-        index = index > 0 ? index : index - 2;
-        lua_setmetatable(L, index);
+        lua_setmetatable(L, index > 0 ? index : index - 2);
+        lua_pop(L, 1);
     }
     else
     {
         g_log("can not find the super : %s",super);
+        lua_pop(L, 2);
     }
-    lua_pop(L, 2);
     return 0;
 }
 
 static int Lua_CreateModule(lua_State* L, const char* nname, luaL_Reg* fn, const char* super)
 {
+    int t1 = lua_gettop(L);
     lua_getglobal(L, LUA_CPP);
     lua_pushstring(L, nname);
     lua_rawget(L, -2);
@@ -203,11 +224,15 @@ static int Lua_CreateModule(lua_State* L, const char* nname, luaL_Reg* fn, const
     {
 		lua_pop(L, 1);
         luaL_newlib(L, fn);
-		lua_pushstring(L, "__index");
+        lua_pushstring(L, nname);
         lua_pushvalue(L, -2);
-		lua_rawset(L, -3);
+        lua_rawset(L, -4);
 
-		lua_pushstring(L, "__newindex");
+        lua_pushstring(L, "name");
+        lua_pushstring(L, nname);
+        lua_rawset(L, -3);
+
+		lua_pushstring(L, "__index");
         lua_pushvalue(L, -2);
 		lua_rawset(L, -3);
 
@@ -242,12 +267,15 @@ static int Lua_CreateModule(lua_State* L, const char* nname, luaL_Reg* fn, const
 	{
 		lua_pop(L, 1);
 		luaL_newlib(L, fn);
+        lua_pushstring(L, nname);
+        lua_pushvalue(L, -2);
+        lua_rawset(L, -4);
+
+        lua_pushstring(L, "name");
+        lua_pushstring(L, nname);
+        lua_rawset(L, -3);
 
 		lua_pushstring(L, "__index");
-		lua_pushvalue(L, -2);
-		lua_rawset(L, -3);
-
-		lua_pushstring(L, "__newindex");
 		lua_pushvalue(L, -2);
 		lua_rawset(L, -3);
 
@@ -285,6 +313,14 @@ static int Lua_CreateRef(lua_State* L, const char* nname, Ref* ref)
 {
     lua_newtable(L);
     Lua_SetMetatable(L, -1, nname);
+
+    if (lua_getmetatable(L, -1))
+    {
+        lua_getfield(L, -1, "name");
+        string s = lua_tostring(L, -1);
+        lua_pop(L, 2);
+    }
+
     lua_pushvalue(L, -1);
     ref->m_luaID = luaL_ref(L, LUA_REGISTRYINDEX);
 
@@ -292,6 +328,15 @@ static int Lua_CreateRef(lua_State* L, const char* nname, Ref* ref)
     lua_pushlightuserdata(L, ref);
 	lua_rawset(L, -3);
     return 1;
+}
+
+static int Lua_BindRef(lua_State* L, const char* nname, Ref* ref)
+{
+    if (ref->m_luaID > 0)
+        return 0;
+    Lua_CreateRef(L, nname, ref);
+    lua_pop(L, 1);
+    return 0;
 }
 
 static int Lua_DeleteRef(lua_State* L, Ref* ref)
@@ -439,6 +484,12 @@ static void Lua_Pack(lua_State* L, const char* value)
 static void Lua_Pack(lua_State* L, const std::string& value)
 {
     lua_pushlstring(L, value.c_str(), value.length());
+}
+
+static void Lua_Pack(lua_State* L, Ref* ref)
+{
+    assert(ref->m_luaID > 0);
+    lua_rawgeti(L, LUA_REGISTRYINDEX, ref->m_luaID);
 }
 
 template<class T>
@@ -660,11 +711,11 @@ static bool Lua_CallFunc(lua_State* L, int rt)
 {
     if (!lua_isfunction(L, -1))
         return false;
-    if (lua_pcall(L, 0, rt, 0) != 0)
+
+    lua_pushcfunction(L, Lua_Error);
+    lua_insert(L, -2);
+    if (lua_pcall(L, 0, rt, -2) != 0)
     {
-        const char* err = lua_tostring(L, -1);
-        printf("call lua func failed!!!, err:%s\n", err);
-        lua_pop(L, 1);
         return false;
     }
     return true;
@@ -679,13 +730,12 @@ static bool Lua_CallFunc(lua_State* L,int rt, const T& t, const Args&... args)
 	{
 		return false;
 	}   
-    
+    lua_pushcfunction(L, Lua_Error);
+    lua_insert(L, -2);
+
     Lua_Pack(L, t, args...) ;
-    if (lua_pcall(L, len, rt, 0) != 0 )
+    if (lua_pcall(L, len, rt, -len - 2) != 0 )
     {
-        const char* err = lua_tostring(L, -1);
-        printf("call lua func failed!!!, err:%s\n",err);
-        lua_pop(L, 1);
         return false;
     }
     return true;

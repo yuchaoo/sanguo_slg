@@ -30,6 +30,6 @@ int main(int argc, const char** argv)
         return 1;
     }
   
-    GameLua::getInstance()->luaMain();
+    GameLua::getInstance()->luaMain("Main.lua");
     return 0;
 }

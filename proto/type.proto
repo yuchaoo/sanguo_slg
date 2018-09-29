@@ -1,0 +1,250 @@
+package msg;
+
+
+// **********************************item信息**********************************
+message msgitemreward {
+	optional int32 id = 1;
+	optional int32 num = 2;
+}
+
+
+// **********************************card信息**********************************
+message msgforcetype {
+	optional int32 type = 1;
+	optional int32 level = 2;
+	repeated int32 point_list = 3;
+}
+
+message msgcardwakestar {
+	optional int32 star_id = 1;
+	optional int32 star_level = 2;
+	optional int32 star_lucky = 3;
+}
+
+message msgcardawake {
+	optional int32 level = 1;
+	optional bool awake = 2;
+	repeated msgcardwakestar star_list = 3;
+}
+
+message msghero {
+	optional int64 id = 1;
+	optional int32 type_id = 2;
+	optional int32 level = 3;
+	optional int32 starLv = 4;
+	optional int32 quality = 5;
+	optional int64 primary = 7;
+	repeated int32 deputy_pos = 8;
+	repeated int64 deputy_id = 9;
+	repeated int32 equips_pos = 10;
+	repeated int64 equips_id = 11;
+	repeated int32 point_list = 12;
+	optional int32 remain_point = 13;
+	optional int32 force_type = 14;
+	repeated msgforcetype force_type_list = 15;
+	optional int32 force_type_level = 16;
+	repeated int32 pos = 17;
+	repeated int32 skill_id_list = 18;
+	optional msgcardawake awake = 19;
+}
+
+
+// **********************************role基本信息**********************************
+message msgrolebase {
+	optional int64 id = 1;
+	optional string name = 2;
+	optional int32 icon = 3;
+	optional int32 cur_rank_level = 4;
+	optional int32 vip_list = 5;
+}
+
+
+// *************************************战斗相关***************************************
+message MSGAnti {
+	optional int64 target_card_id = 1;
+	optional int32 target_card_type = 2;
+	optional int64 target_owner_id = 3;
+	optional int32 effect_id = 4;
+	optional int32 effect_result = 6;
+	optional int32 target_card_force_num = 7;
+	optional int32 effect_value = 8;
+	optional int64 source_card_id = 10;
+	optional int32 source_card_type = 11;
+	optional int64 source_owner_id = 12;
+}
+
+message MSGActionTarget {
+	optional int64 target_card_id = 1;
+	optional int32 target_card_type = 2;
+	optional int64 target_owner_id = 3;
+	repeated MSGAnti anti = 4;//触发行为
+	optional int32 target_card_force_num = 5;//兵力
+	optional int32 effect_value = 6;//效果施加值
+	optional int32 effect_value_final = 7;//效果最终值
+	optional int32 effect_result = 8;
+}
+
+message MSGActionEffect {
+	optional int32 effect_id = 1;//效果ID
+	optional int32 effect_result = 3;//是否生效；0-生效；1-无法普通攻击；2-无法释放技能；3-找不到目标
+	repeated MSGActionTarget target = 4;
+}
+
+message MSGFightAction {
+	optional int64 card_id = 1;
+	optional int32 card_type = 2;
+	optional int64 owner_id = 3;
+	optional int32 skill_id = 4;//1-普通攻击；其他为具体技能ID
+	repeated MSGActionEffect effect_list = 6;//效果列表
+	optional int32 buff_id = 7;
+	optional int32 action_result = 8;//是否生效；0-生效；1-无法普通攻击；2-无法释放技能；3-找不到目标
+	optional int64 time = 9;
+}
+
+message MSGFightRound {
+	optional int32 round = 1;
+	repeated MSGFightAction action_list = 2;
+}
+
+message MSGFightCardResult {
+	optional int32 card_type = 1;
+	optional int32 level = 2;
+	optional int32 force_num = 3;
+	optional int64 card_id = 4;
+	optional int64 owner_id = 5;
+	optional int32 init_pos = 6;
+	optional int32 init_anger = 7;
+	optional int32 star_level = 8;
+	optional int32 quality = 9;
+	optional int32 force_type = 10;
+	optional int32 force_type_level = 11;
+}
+
+message msgfightplayer {
+	optional int64 id = 1;
+	optional int32 level = 2;
+	optional string name = 3;
+	optional int32 icon = 4;
+	optional int32 speed = 5;
+	optional int32 force_num_init = 6;
+	optional int32 force_num_result = 7;
+	optional msgitemreward reward_list = 8;//奖励情况
+	repeated MSGFightCardResult card_list = 9;//战斗初始进攻方卡牌情况
+	optional int64 object_id = 10;
+	repeated string reserve_key = 11;
+	repeated string reserve_value = 12;
+}
+
+message MSGReport {
+	optional int64 id = 1;
+	optional int32 state = 2;//进攻方胜利1，进攻方失败2，平局3，同归于尽4
+	optional msgfightplayer attack = 3;
+	optional msgfightplayer defence = 4;
+	optional int32 city_id = 11;
+	optional int32 type = 12;//战斗类型，1-战局；2-副本；3-好友切磋
+	optional int32 start_time = 13;
+	optional int32 end_time = 14;
+	repeated MSGFightRound prepare = 16;//战前准备回合
+	repeated MSGFightRound fight = 17;//战斗回合
+	optional int64 map_id = 18;//地图id
+}
+
+message MSGReportSimple {
+	optional int64 id = 1;
+	optional int32 state = 2;//进攻方胜利1，进攻方失败2，平局3，同归于尽4
+	optional msgfightplayer attack = 3;
+	optional msgfightplayer defence = 4;
+	optional int32 city_id = 11;
+	optional int32 type = 12;//战斗类型，1-战局；2-副本；3-好友切磋
+	optional int32 start_time = 13;
+	optional int32 end_time = 14;
+}
+
+message msgreportcard {
+	optional int32 pos = 1;
+	repeated int32 index_list = 2;
+	repeated float value_list = 3;
+}
+message msgtitlenum {
+	optional int32 title_id = 1;					//1-mvp；2-战神；3-军师；4-霸主
+	optional int32 title_num = 2;
+}
+
+
+// **************************************赛季信息****************************************
+message msgbattleinfo {
+	optional float assist = 1;						//助攻
+	optional float city_num = 2;					//城市数量
+	optional float kill = 3;						//击杀
+	optional int32 master_win_num = 4;				//主公身份胜利场次
+	optional int32 match_num = 5;					//总场次
+	optional int32 max_continue_win_num = 6;		//最大连胜
+	optional int32 max_rank_level = 7;				//最高爵位
+	optional float score = 8;						//积分
+	optional int32 season = 9;						//赛季数
+	optional int32 season_match_num = 10;			//赛季总场次
+	repeated msgtitlenum title_num_list = 11;		//称号数量列表
+	optional int32 win_num = 12;					//总胜利场次
+	optional int32 cur_rank_level = 13;				//
+	optional int32 cur_star = 14;					//
+	optional int32 pingfen = 15;					//评分
+}
+
+
+// ************************************角色group信息*************************************
+message msgrolegroup {
+	optional int64 group_id = 1;
+	optional string group_name = 2;
+	optional int32 group_title = 3;
+}
+
+
+// ***********************************战局地图藏宝图结构************************************
+message msgtreasurebox {
+	optional int32 treasure_id = 1;
+	optional int32 start_time = 2;
+	optional int32 end_time = 3;
+	optional int32 pos = 4;
+}
+
+// ***********************************帮助请求信息************************************
+message helpinfo {
+	optional int64 timestamp = 1;
+	optional int32 type = 2;
+	optional int64 role_id = 3;
+	optional int32 icon = 4;
+	optional string role_name = 5;
+}
+
+// ***********************************单条融合信息************************************
+message skill_mix_msg {
+	optional int64 timestamp = 1; 
+	optional int64 end_time = 2;
+	optional int32 is_accelerate = 3;	// 0为没有加速
+	optional int32 reward_id = 4;
+	optional int32 reward_count = 5;
+	repeated int32 mix_item_id_list = 6;
+}
+
+message buy_fortune_info{
+	optional int32 type_id = 1;
+	optional int32 buy_times = 2;
+}
+
+
+// ***********************************西域游商商店的信息************************************
+message msgactivityshop {
+	optional int32 grid_id = 1;
+	optional int32 config_id = 2;
+	optional int32 item_id = 3;
+	optional int32 cur_buy_times = 5;
+	optional int32 price_type = 6;
+	optional int32 price_num = 7;
+}
+
+// ***********************************洗练的信息***************************************
+//洗练属性
+message msgwashlist{
+    optional int32 index = 1;   //槽位
+    optional int32 wash_id = 2;   //配置表ID
+}

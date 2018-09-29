@@ -11,7 +11,10 @@ Log::Log()
 
 Log::~Log()
 {
-
+    if (m_logfile)
+    {
+        m_logfile.close();
+    }
 }
 
 bool Log::init(const char* logfile)

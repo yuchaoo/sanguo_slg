@@ -16,7 +16,11 @@ function This:createConnection(connection)
 
 end
 
-function This:update(dt)
+function This:removeConnection(connection)
+    
+end
 
+function This:update(dt)
+    
 end
 

@@ -33,13 +33,20 @@ public:
     void removeObserver(NetObserver* observer);
     void setLuaUpdateRefId(int ref);
     void setLuaCreateConnRefId(int ref);
-    bool init(int port);
+    void setLuaRemoveConnRefId(int ref);
+    void setLuaGmRefId(int ref);
+    bool init();
+
+    bool listen(int port);
+    Connection* createConnect();
+
     void listener(struct evconnlistener* listener, evutil_socket_t, struct sockaddr* addr);
     void addConnection(struct bufferevent* be);
     void removeConnection(struct bufferevent* be);
     void initGmThread();
     void handleGm();
     void addGmCommand(const char* gm);
+
     void dispatch();
     void update();
 public:
@@ -55,10 +62,13 @@ private:
     std::mutex m_gmmutex;
     int m_luaUpdateRefId;
     int m_luaCreateConnRefId;
+    int m_luaRemoveConnRefId;
+    int m_luaGmRefId;
     sockaddr_in* m_listenAddr;
     std::vector<NetObserver*> m_observers;
     std::vector<Connection*> m_connects;
     std::list<std::string> m_gmlist;
+    Connection* m_clientConn;
 };
 
 #endif // _NET_WORK_MANAGER_

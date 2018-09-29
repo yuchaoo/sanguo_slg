@@ -1,5 +1,6 @@
-#include "Ref.h"
-
+﻿#include "Ref.h"
+#include "LuaWrapper.h"
+#include "GameLua.h"
 int Ref::kRefCount = 0;
 
 Ref::Ref()
@@ -7,14 +8,14 @@ Ref::Ref()
     ,m_refCount(1)
     ,m_refId(++kRefCount)
 {
-    RefManager::getInstance()->addRef(this);
 }
 
 Ref::~Ref()
 {
 	if (m_luaID > 0)
 	{
-		
+        lua_State* L = GameLua::getInstance()->getLuaState();
+        Lua_DeleteRef(L, this);
 	}
 }
 
@@ -30,38 +31,4 @@ int Ref::release()
         delete this;
     }
     return m_refCount;
-}
-
-/*****************************************************/
-
-RefManager* RefManager::getInstance()
-{
-    static RefManager mgr;
-    return &mgr;
-}
-
-RefManager::RefManager()
-{
-
-}
-
-RefManager::~RefManager()
-{
-
-}
-
-void RefManager::addRef(Ref* ref) 
-{
-    m_refs.push_back(ref);
-}
-
-void RefManager::update(float dt)
-{
-    if (m_refs.size() <= 0)
-        return;
-    for (auto& iter = m_refs.begin(); iter != m_refs.end(); ++iter)
-    {
-        (*iter)->release();
-    }
-    m_refs.resize(0);
 }

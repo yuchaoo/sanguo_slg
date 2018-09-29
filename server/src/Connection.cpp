@@ -127,9 +127,8 @@ int ProtoData::getDataLen() const
 
 /*************************************************************/
 
-Connection::Connection(struct bufferevent* be, lua_State* L)
+Connection::Connection(struct bufferevent* be, event_base* base)
     :m_be(be)
-    ,m_l(L)
     ,m_writeCount(0)
     ,m_curWriteProto(NULL)
     ,m_luaConnectedRefId(0)
@@ -139,19 +138,73 @@ Connection::Connection(struct bufferevent* be, lua_State* L)
     , m_luaWTimeoutRefId(0)
     , m_luaRTimeoutRefId(0)
     , m_lastSerialId(-1)
+    , m_base(base)
 {
+    m_l = GameLua::getInstance()->getLuaState();
+}
 
+Connection::Connection(event_base* base)
+    :m_be(NULL)
+    ,m_writeCount(0)
+    ,m_curWriteProto(NULL)
+    ,m_luaConnectedRefId(0)
+    , m_luaRecvRefId(0)
+    , m_luaCloseRefId(0)
+    , m_luaFinishRefId(0)
+    , m_luaWTimeoutRefId(0)
+    , m_luaRTimeoutRefId(0)
+    , m_lastSerialId(-1)
+    , m_base(base)
+{
+    m_l = GameLua::getInstance()->getLuaState();
+    m_be = bufferevent_socket_new(base, -1, BEV_OPT_CLOSE_ON_FREE);
 }
 
 Connection::~Connection()
 {
+    clear();
 }
 
 bool Connection::init()
 {
+    evutil_socket_t fd = bufferevent_getfd(m_be);
+    if (fd > 0)
+    {
+        evutil_make_listen_socket_reuseable(fd);
+        evutil_make_socket_nonblocking(fd);
+    }
     bufferevent_setcb(m_be, readbe, writebe, eventsbe, this);
-    bufferevent_enable(m_be, EV_READ | EV_WRITE);
+    int ret = bufferevent_enable(m_be, EV_READ | EV_WRITE);
+    if (ret == -1)
+    {
+        g_log("the bufferevent is disable");
+        return false;
+    }
     return true;
+}
+
+void Connection::connect(const char* ip, int port)
+{
+    struct sockaddr_in serversock;
+    memset(&serversock, 0, sizeof(serversock));
+#ifdef _WIN32 
+    inet_pton(AF_INET, ip,&serversock.sin_addr);
+#else
+    serversock.sin_addr.s_addr = inet_addr(ip);
+#endif
+    serversock.sin_port = htons(port);
+    serversock.sin_family = AF_INET;
+    if (!m_be)
+    {
+        m_be = bufferevent_socket_new(m_base, -1, BEV_OPT_CLOSE_ON_FREE);
+        bufferevent_setcb(m_be, readbe, writebe, eventsbe, this);
+        bufferevent_enable(m_be, EV_READ | EV_WRITE);
+    }
+    int ret = bufferevent_socket_connect(m_be, (struct sockaddr*)&serversock, sizeof(serversock));
+    if (ret == -1)
+    {
+        g_log("connect failed!!!\n");
+    }
 }
 
 void Connection::send(int cmd, const char* data, size_t len)
@@ -166,6 +219,9 @@ void Connection::send(int cmd, const char* data, size_t len)
 void Connection::connected()
 {
     g_log("connected...\n");
+    evutil_socket_t fd = bufferevent_getfd(m_be);
+    evutil_make_listen_socket_reuseable(fd);
+    evutil_make_socket_nonblocking(fd);
     Lua_CallRef(m_l, m_luaConnectedRefId, 0);
 }
 
@@ -207,14 +263,14 @@ void Connection::finish()
 {
     g_log("the connection fnish");
     Lua_CallRef(m_l, m_luaFinishRefId, 0);
-    this->clear();
+    NetworkManager::getInstance()->removeConnection(m_be);
 }
 
 void Connection::close()
 {
     g_log("the conncetion close");
     Lua_CallRef(m_l, m_luaCloseRefId, 0);
-    this->clear();
+    NetworkManager::getInstance()->removeConnection(m_be);
 }
 
 void Connection::wtmout()
@@ -268,7 +324,6 @@ void Connection::events(int events)
 
 void Connection::clear()
 {
-    NetworkManager::getInstance()->removeConnection(m_be);
     if (m_be)
     {
         bufferevent_free(m_be);
@@ -391,11 +446,22 @@ int lua_connection_setLuaWTimeoutRefId(lua_State* L)
     }
     return 0;
 }
+int lua_connection_connect(lua_State* L)
+{
+    Connection* connect = Lua_GetPointer<Connection>(L, 1);
+    if (!connect) return 0;
+    const char* ip = Lua_GetString(L, 2);
+    int port = Lua_GetInt(L, 3);
+    connect->connect(ip, port);
+    return 0;
+}
+
 int lua_open_connection_module(lua_State* L)
 {
     luaL_Reg reg[] = {
         {"init",lua_connection_init },
         {"send",lua_connection_send },
+        {"connect",lua_connection_connect},
         {"setMaxRewriteCount",lua_connection_setMaxRewriteCount },
         {"setLuaConnectedHandler",lua_connection_setLuaConnectedRefId },
         {"setLuaRecvHandler",lua_connection_setLuaRecvRefId },

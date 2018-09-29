@@ -17,9 +17,12 @@
 #include "GameLua.h"
 #include "LuaWrapper.h"
 #include "Log.h"
+#include "Ref.h"
 
 #ifdef _WIN32
 #include<WinSock2.h>
+#else
+#include<sys/socket.h>
 #endif
 
 void evlistener(struct evconnlistener* listener, evutil_socket_t fd,struct sockaddr* addr, int socklen, void* data)
@@ -84,8 +87,11 @@ NetworkManager::NetworkManager()
 ,m_eventBase(NULL)
 ,m_listenAddr(NULL)
 ,m_timer(NULL)
+, m_clientConn(NULL)
 , m_luaCreateConnRefId(0)
 ,m_luaUpdateRefId(0)
+, m_luaRemoveConnRefId(0)
+, m_luaGmRefId(0)
 {
     m_timeval.tv_sec = m_timeval.tv_usec = 0;
     m_listenAddr = new sockaddr_in;
@@ -99,6 +105,11 @@ NetworkManager::~NetworkManager()
 {
     delete m_listenAddr;
     WSACleanup();
+    if (m_clientConn)
+    {
+        delete m_clientConn;
+        m_clientConn = NULL;
+    }
     if (m_eventBase)
     {
         struct timeval delay = { 0, 0 };
@@ -149,12 +160,28 @@ void NetworkManager::setLuaCreateConnRefId(int ref)
     m_luaCreateConnRefId = ref;
 }
 
-bool NetworkManager::init(int port)
+void NetworkManager::setLuaRemoveConnRefId(int ref)
 {
-    memset(m_listenAddr,0,sizeof(sockaddr_in));
-    m_listenAddr->sin_family = AF_INET;
-    m_listenAddr->sin_port = htons(port);
-    
+    if (m_luaRemoveConnRefId > 0)
+    {
+        lua_State* L = GameLua::getInstance()->getLuaState();
+        luaL_unref(L, LUA_REGISTRYINDEX, m_luaRemoveConnRefId);
+    }
+    m_luaRemoveConnRefId = ref;
+}
+
+void NetworkManager::setLuaGmRefId(int ref)
+{
+    if (m_luaGmRefId > 0)
+    {
+        lua_State* L = GameLua::getInstance()->getLuaState();
+        luaL_unref(L, LUA_REGISTRYINDEX, m_luaGmRefId);
+    }
+    m_luaGmRefId = ref;
+}
+
+bool NetworkManager::init()
+{
     m_eventBase = event_base_new();
     if(!m_eventBase)
     {
@@ -162,23 +189,10 @@ bool NetworkManager::init(int port)
         return false;
     }
 
-    event_set_log_callback(&eventLog);
-
-    m_listener = evconnlistener_new_bind(m_eventBase,evlistener,(void*)m_eventBase, LEV_OPT_REUSEABLE | LEV_OPT_CLOSE_ON_FREE,1,(struct sockaddr*)m_listenAddr ,sizeof(sockaddr_in));
-    if(!m_listener)
-    {
-        event_base_free(m_eventBase);
-        g_log("Could not create a listener");
-        return false;
-    }
-
-    evutil_gettimeofday(&m_timeval, NULL);
-
     struct timeval tv = {1,0};
     m_timer = event_new(m_eventBase,-1, EV_PERSIST, evtimer,this);
     if (!m_timer || event_add(m_timer, &tv) < 0)
     {
-        evconnlistener_free(m_listener);
         event_base_free(m_eventBase);
         return false;
     }
@@ -186,24 +200,37 @@ bool NetworkManager::init(int port)
     struct event *signal_event =  evsignal_new(m_eventBase, SIGINT, evsignal, m_eventBase);
     if (!signal_event || event_add(signal_event, NULL) < 0)
     {
-        evconnlistener_free(m_listener);
         event_base_free(m_eventBase);
         return false;
     }
-    
-    //监听终端输入事件
-    /*struct timeval tv1 = {5,0 };
-    struct event* ev_cmd = event_new(m_eventBase, -1,  EV_PERSIST, evquit, m_eventBase);
-    if (!ev_cmd || event_add(ev_cmd, &tv1) < 0)
-    {
-        evconnlistener_free(m_listener);
-        event_base_free(m_eventBase);
-        return false;
-    }*/
+
+    event_set_log_callback(&eventLog);
+    evutil_gettimeofday(&m_timeval, NULL);
 
     initGmThread();
-
     return true;
+}
+
+bool NetworkManager::listen(int port)
+{
+    memset(m_listenAddr, 0, sizeof(sockaddr_in));
+    m_listenAddr->sin_family = AF_INET;
+    m_listenAddr->sin_port = htons(port);
+    m_listener = evconnlistener_new_bind(m_eventBase, evlistener, (void*)this, LEV_OPT_REUSEABLE | LEV_OPT_CLOSE_ON_FREE, 1, (struct sockaddr*)m_listenAddr, sizeof(sockaddr_in));
+    if (!m_listener)
+    {
+        event_base_free(m_eventBase);
+        g_log("Could not create a listener");
+        return false;
+    }
+    return true;
+}
+
+Connection* NetworkManager::createConnect()
+{
+    m_clientConn = new Connection(m_eventBase);
+    m_clientConn->init();
+    return m_clientConn;
 }
 
 void NetworkManager::initGmThread() 
@@ -254,27 +281,36 @@ void NetworkManager::listener(struct evconnlistener* listener, evutil_socket_t f
 void NetworkManager::addConnection(struct bufferevent* be)
 {
     lua_State* L = GameLua::getInstance()->getLuaState();
-    Connection* conn = new Connection(be, L);
+    Connection* conn = new Connection(be, m_eventBase);
+    if (!conn->init())
+    {
+        delete conn;
+        return;
+    }
     m_connects.push_back(conn);
     for (auto iter = m_observers.begin(); iter != m_observers.end(); ++iter)
     {
         (*iter)->onConnectionCreated(conn);
     }
-    Lua_CallRef(L, m_luaCreateConnRefId, 0);
+    Lua_BindRef(L, "Connection", conn);
+    Lua_CallRef(L, m_luaCreateConnRefId, 0,conn);
 }
 
 void NetworkManager::removeConnection(struct bufferevent* be)
 {
+    lua_State* L = GameLua::getInstance()->getLuaState();
     for (auto& iter = m_connects.begin(); iter != m_connects.end(); ++iter)
     {
         Connection* conn = (*iter);
         if (conn->getBufferEvent() == be)
         {
+            Lua_CallRef(L, m_luaRemoveConnRefId, 0, conn);
             m_connects.erase(iter);
             for (auto iter = m_observers.begin(); iter != m_observers.end(); ++iter)
             {
                 (*iter)->onConnectionRemoved(conn);
             }
+            delete conn;
             break;
         }
     }
@@ -302,9 +338,10 @@ void NetworkManager::handleGm()
         return;
     }
     g_log("***************handle gm : %s********************",gm.c_str());
+    lua_State* L = GameLua::getInstance()->getLuaState();
+    Lua_CallRef(L, m_luaGmRefId, 0, gm.c_str());
     if (gm == "quit")
     {
-        
         event_base_loopbreak(m_eventBase);
     }
     g_log("***********************handle gm end**********************");
@@ -312,12 +349,16 @@ void NetworkManager::handleGm()
 
 void NetworkManager::dispatch()
 {
-    if(m_eventBase && m_listener)
+    if(m_eventBase)
     {
         g_log("network dispatch...");
         event_base_dispatch(m_eventBase);
         event_del(m_timer);
-        evconnlistener_free(m_listener);
+        if (m_listener)
+        {
+            evconnlistener_free(m_listener);
+            m_listener = NULL;
+        }
         event_base_free(m_eventBase);
         m_eventBase = NULL;
     }
@@ -354,7 +395,7 @@ int lua_network_init(lua_State* L)
 	{
 		return Lua_SetBool(L,false);
 	}
-    return Lua_SetBool(L,mgr->init(Lua_GetInt(L,1)));
+    return Lua_SetBool(L,mgr->init());
 }
 
 int lua_network_setLuaUpdateHandler(lua_State* L)
@@ -377,6 +418,43 @@ int lua_network_setLuaCreateConnHandler(lua_State* L)
     return 0;
 }
 
+int lua_network_setLuaRemoveConnHandler(lua_State* L)
+{
+    NetworkManager* mgr = Lua_GetPointer<NetworkManager>(L, 1);
+    if (!mgr || !lua_isfunction(L, 2))
+        return 0;
+    int ref = luaL_ref(L, LUA_REGISTRYINDEX);
+    mgr->setLuaRemoveConnRefId(ref);
+    return 0;
+}
+
+int lua_network_setLuaGmHandler(lua_State* L)
+{
+    NetworkManager* mgr = Lua_GetPointer<NetworkManager>(L, 1);
+    if (!mgr || !lua_isfunction(L, 2))
+        return 0;
+    int ref = luaL_ref(L, LUA_REGISTRYINDEX);
+    mgr->setLuaGmRefId(ref);
+    return 0;
+}
+
+int lua_network_createConnection(lua_State* L)
+{
+    NetworkManager* mgr = Lua_GetPointer<NetworkManager>(L, 1);
+    if (!mgr) return 0;
+    Connection* conn = mgr->createConnect();
+    return Lua_CreateRef(L, "Connection", conn);
+}
+
+int lua_network_listen(lua_State* L)
+{
+    NetworkManager* mgr = Lua_GetPointer<NetworkManager>(L, 1);
+    if (!mgr) return 0;
+    int port = Lua_GetInt(L, 2);
+    bool ret = mgr->listen(port);
+    return Lua_SetBool(L, ret);
+}
+
 int lua_network_dispatch(lua_State* L)
 {
     NetworkManager* mgr = Lua_GetPointer<NetworkManager>(L, 1);
@@ -389,9 +467,13 @@ int lua_open_network_module(lua_State* L)
 {
     luaL_Reg reg[] = {
         {"init",lua_network_init},
+        {"listen",lua_network_listen},
         {"setLuaUpdateHandler",lua_network_setLuaUpdateHandler },
         {"setLuaCreateConnHandler",lua_network_setLuaCreateConnHandler },
+        {"setLuaRemoveConnHandler",lua_network_setLuaRemoveConnHandler },
+        {"setLuaGmHandler",lua_network_setLuaGmHandler},
 		{"dispatch",lua_network_dispatch },
+        {"createConnection",lua_network_createConnection},
         {NULL,NULL}
     };
     Lua_CreateModule(L, "net", reg, NULL, NetworkManager::getInstance());

@@ -5,7 +5,9 @@
 #include "Ref.h"
 
 struct bufferevent;
+struct event_base;
 #define HEAD_LEN 12
+
 
 struct ProtoData
 {
@@ -33,9 +35,11 @@ class Connection
     :public Ref
 {
 public:
-    Connection(struct bufferevent* be, lua_State* L);
+    Connection(struct bufferevent* be, event_base* base);
+    Connection(event_base* base);
     ~Connection();
     bool init();
+    void connect(const char* ip, int port);
     void send(int cmd, const char* data, size_t len);
     void connected();
     void write();
@@ -69,6 +73,7 @@ private:
     int m_luaFinishRefId;
     int m_luaWTimeoutRefId;
     int m_luaRTimeoutRefId;
+    event_base* m_base;
 
     ProtoData* m_curWriteProto;
     std::list<ProtoData*> m_prolist;

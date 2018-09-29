@@ -48,8 +48,8 @@ bool GameLua::init()
     lua_setglobal(m_L,LUA_CPP);
 
     luaL_openlibs(m_L);
-    luaopen_lpeg(m_L);
-    luaopen_protobuf_c(m_L);
+    luaL_requiref(m_L, "lpeg", luaopen_lpeg, 0);
+    luaL_requiref(m_L, "protobuf.c", luaopen_protobuf_c, 0);
 
     setLuaLoader(Lua_Loader, 2);
     const string & scriptsdir = FileSystem::getInstance()->getScriptsDirectory();
@@ -67,12 +67,12 @@ lua_State* GameLua::getLuaState()
     return m_L;
 }
 
-bool GameLua::luaMain()
+bool GameLua::luaMain(const char* luafile)
 {
     FileSystem* fs = FileSystem::getInstance();
     size_t size = 0;
 
-    string path = fs->getLuaFilePath("Main.lua");
+    string path = fs->getLuaFilePath(luafile);
     int ret = luaL_loadfile(m_L, path.c_str());
     if (ret)
     {
@@ -136,6 +136,7 @@ void GameLua::setLuaFunc()
 	luaL_Reg reg[] = {
 		{"cppclass",Lua_Class},
 		{"print",Lua_Print},
+        {"logError",Lua_Error},
 		{NULL,NULL}
 	};
 	lua_getglobal(m_L, "_G");

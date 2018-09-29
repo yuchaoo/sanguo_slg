@@ -1,0 +1,80 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="源文件">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="资源文件">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="main.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Connection.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\EventDispatcher.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\FileSystem.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\GameLua.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\GameUtil.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Log.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\NetworkManager.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\ProtocalManager.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Ref.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\external\pbc\binding\lua53\pbc-lua53.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\src\Connection.h">
+      <Filter>源文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\EventDispatcher.h">
+      <Filter>源文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\FileSystem.h">
+      <Filter>源文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\GameLua.h">
+      <Filter>源文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\GameUtil.h">
+      <Filter>源文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\Log.h">
+      <Filter>源文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\LuaWrapper.h">
+      <Filter>源文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\NetworkManager.h">
+      <Filter>源文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\ProtocalManager.h">
+      <Filter>源文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\Ref.h">
+      <Filter>源文件</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

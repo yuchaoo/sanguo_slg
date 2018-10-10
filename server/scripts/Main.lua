@@ -62,7 +62,10 @@ function rungame()
 
 	function handleGm(gm)
 		print("gm",gm)
-		local slice = string.match(gm,"(.+ )*")
+		local args = {}
+		for s in string.gmatch(gm,"([^ ]+)") do
+			table.insert(args,s)
+		end 
 		
 	end
 
@@ -73,6 +76,11 @@ function rungame()
 	net:init()
 	local ret = net:listen(8080)
 	if ret then
+		local args = {}
+		for s in string.gmatch("send 100 ssss","([^ ]+)") do
+			table.insert(args,s)
+		end 
+
 		gamemanager:init()
 		net:setLuaCreateConnHandler(createConnection)
 		net:setLuaRemoveConnHandler(removeConnection)

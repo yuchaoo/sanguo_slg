@@ -35,9 +35,13 @@ function rungame()
 	local net = require("cpp.net")
 	local conn = require("cpp.Connection")
 	local gamemanager = require("GameManager")
+	net:init()
+	
+	local connection = net:createConnection()
 
     function connected()
-        print("connected...")
+		print("connected...")
+		connection:send(100,"dfafaa")
     end
 
     function recv(cmd,data,len)
@@ -52,8 +56,7 @@ function rungame()
 
     end
 
-	net:init()
-    local connection = net:createConnection()
+	
     connection:setMaxRewriteCount(3)
     connection:setLuaConnectedHandler(connected)
     connection:setLuaRecvHandler(recv)

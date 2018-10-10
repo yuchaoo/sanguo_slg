@@ -354,8 +354,9 @@ int lua_connection_send(lua_State* L)
     Connection* connect = Lua_GetPointer<Connection>(L, 1);
     if (!connect) return 0;
     int cmd = Lua_GetInt(L, 2);
-    const char* msg = Lua_GetString(L, 3);
-    size_t len = Lua_GetUnsign(L, 4);
+    size_t len = 0;
+    const char* msg = lua_tolstring(L, 3, &len);
+
     if (cmd > 0 && len > 0)
         connect->send(cmd, msg, len);
     else

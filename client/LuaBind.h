@@ -1,4 +1,4 @@
-#ifndef _LUA_BIND_
+﻿#ifndef _LUA_BIND_
 #define _LUA_BIND_
 extern "C"
 {
@@ -10,6 +10,7 @@ extern "C"
 #include "2d/CCActionInterval.h"
 
 using namespace cocos2d;
+using namespace std;
 
 #define LUA_CPP_POINTER_STR "__cptr"
 #define LUA_CC "cc"
@@ -18,6 +19,13 @@ struct luaL_Enum
 {
 	const char* key;
 	int value;
+};
+
+struct luaL_Ptr
+{
+    const char* key;
+    Ref* ptr;
+    //luaL_Ptr(const char* k, Ref* f) : key(k), ptr(f) {}
 };
 
 static int Lua_Error(lua_State* L)
@@ -204,6 +212,16 @@ static bool Lua_isBinded(lua_State* L, cocos2d::Ref* ref)
 	return ref && ref->_luaID > 0;
 }
 
+static int Lua_GetRef(lua_State* L, Ref* ref, const char* key)
+{
+    if (ref->_luaID > 0)
+    {
+        lua_rawgeti(L, LUA_REGISTRYINDEX, ref->_luaID);
+        lua_pushstring(L, key);
+        return lua_rawget(L,-2);
+    }
+    return 0;
+}
 /***********************************************************/
 template<class T>
 static T* Lua_GetPointer(lua_State* L,int index)
@@ -220,7 +238,7 @@ static T* Lua_GetPointer(lua_State* L,int index)
 static bool Lua_GetBool(lua_State* L, int index)
 {
 	if (lua_isboolean(L, index))
-		return lua_toboolean(L, index);
+		return lua_toboolean(L, index) == 1;
 	return !lua_isnil(L, index);
 }
 
@@ -561,6 +579,17 @@ static int Lua_SetPointer(lua_State* L, Ref* ref, const char* module)
 	}
 }
 
+template<typename T>
+static int Lua_SetPointer(lua_State* L, const std::vector<T*>& v, const char* module)
+{
+    assert(!std::is_pointer<T>::value);
+    for (size_t i = 0; i < v.size(); ++i)
+    {
+        Lua_SetPointer(L, v[i], module);
+    }
+    return v.size();
+}
+
 static int Lua_SetBool(lua_State* L, bool value)
 {
 	lua_pushboolean(L, value);
@@ -776,6 +805,17 @@ static void Lua_Pack(lua_State* L, const std::string& value)
 {
 	lua_pushlstring(L, value.c_str(), value.length());
 }
+static void Lua_Pack(lua_State* L, const luaL_Ptr& lp)
+{
+    if (lp.ptr->_luaID > 0)
+    {
+        lua_rawgeti(L, LUA_REGISTRYINDEX, lp.ptr->_luaID);
+    }
+    else
+    {
+        Lua_CreateRef(L, lp.key, lp.ptr);
+    }
+}
 
 template<class T>
 static void Lua_Pack(lua_State* L, const std::vector<T>& value)
@@ -950,5 +990,24 @@ static bool Lua_CallRef(lua_State* L, int ref, int rt, const T& t, const Args&..
 	}
 	return Lua_CallFunc(L, rt, t, args...);
 }
+
+/*template<class R, typename... Args>
+static std::function<R(Args...)> Lua_CreateCallback(lua_State* L, int tableIndex, int funcIndex, const char* key, Args... args)
+{
+    Ref* ref = Lua_GetPointer<Ref>(L, tableIndex);
+    lua_pushstring(L, key);
+    lua_pushvalue(L, funcIndex > 0 ? funcIndex : funcIndex - 1);
+    lua_rawset(L, tableIndex > 0 ? tableIndex : tableIndex - 2);
+    typedef std::function<R(Args...)> CALLBACK;
+    CALLBACK func = [=](Args... args)->R {
+        lua_rawgeti(L, LUA_REGISTRYINDEX, ref->_luaID);
+        lua_pushstring(L, key);
+        lua_rawget(L, -3);
+        if (lua_isfunction(L, -1))
+        {
+            Lua_CallFunc(L,)
+        }
+    };
+}*/
 
 #endif

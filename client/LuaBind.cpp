@@ -1,4 +1,4 @@
-#include "cocos2d.h"
+﻿#include "cocos2d.h"
 #include "LuaBind.h"
 #include "LuaWrapper.h"
 #include "CCDirector.h"
@@ -117,8 +117,7 @@ int lua_open_cocos2dx_ref_module(lua_State* L)
 		{ "isNull", lua_cocos2dx_ref_isNull },
 		{NULL,NULL}
 	};
-	Lua_CreateModule(L, "Ref", NULL, reg);
-	return 1;
+	return Lua_CreateModule(L, "Ref", NULL, reg);
 }
 /*******************Node***********************/
 int lua_cocos2dx_node_setLocalZOrder(lua_State* L)
@@ -925,21 +924,36 @@ int lua_open_cocos2dx_Texture2D_module(lua_State* L)
 		{"getAlphaTexture",lua_cocos2dx_Texture2D_getAlphaTexture },
 		{NULL,NULL}
 	};
-	
-	lua_getglobal(L, LUA_CC);
-	lua_newtable(L);
-	const char* keys[] = {"AUTO","BGRA8888","RGBA8888","RGB888","RGB565","A8","I8","AI88","RGBA4444","RGB5A1","PVRTC4","PVRTC4A","PVRTC2","PVRTC2A","ETC","S3TC_DXT1","S3TC_DXT3","S3TC_DXT5","ATC_RGB","ATC_EXPLICIT_ALPHA","ATC_INTERPOLATED_ALPHA","DEFAULT","NONE"};
-	const int values[] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,0,-1};
-	for (int i = 0; i < sizeof(values) / sizeof(int); ++i)
-	{
-		lua_pushstring(L, keys[i]);
-		lua_pushinteger(L, values[i]);
-		lua_rawset(L, -3);
-	}
-	lua_pushstring(L, "PixelFormat");
-	lua_rawset(L, -3);
-	lua_pop(L, 1);
-	return Lua_CreateModule(L, "Texture2D", "Ref", reg);
+    Lua_CreateModule(L, "Texture2D", "Ref", reg);
+
+    luaL_Enum em[] = {
+        {"AUTO",(int)Texture2D::PixelFormat::AUTO},
+        {"BGRA8888",(int)Texture2D::PixelFormat::BGRA8888 },
+        {"RGBA8888",(int)Texture2D::PixelFormat::RGBA8888 },
+        {"RGB888",(int)Texture2D::PixelFormat::RGB888 },
+        {"RGB565",(int)Texture2D::PixelFormat::RGB565 },
+        {"A8",(int)Texture2D::PixelFormat::A8 },
+        {"I8",(int)Texture2D::PixelFormat::I8},
+        {"AI88",(int)Texture2D::PixelFormat::AI88 },
+        {"RGBA4444",(int)Texture2D::PixelFormat::RGBA4444 },
+        {"RGB5A1",(int)Texture2D::PixelFormat::RGB5A1 },
+        {"PVRTC4",(int)Texture2D::PixelFormat::PVRTC4 },
+        {"PVRTC4A",(int)Texture2D::PixelFormat::PVRTC4A },
+        {"PVRTC2",(int)Texture2D::PixelFormat::PVRTC2 },
+        {"PVRTC2A",(int)Texture2D::PixelFormat::PVRTC2A },
+        {"ETC",(int)Texture2D::PixelFormat::ETC },
+        {"S3TC_DXT1",(int)Texture2D::PixelFormat::S3TC_DXT1 },
+        {"S3TC_DXT3",(int)Texture2D::PixelFormat::S3TC_DXT3 },
+        {"S3TC_DXT5",(int)Texture2D::PixelFormat::S3TC_DXT5 },
+        {"ATC_RGB",(int)Texture2D::PixelFormat::ATC_RGB },
+        {"ATC_EXPLICIT_ALPHA",(int)Texture2D::PixelFormat::ATC_EXPLICIT_ALPHA },
+        {"ATC_INTERPOLATED_ALPHA",(int)Texture2D::PixelFormat::ATC_INTERPOLATED_ALPHA },
+        {"DEFAULT",(int)Texture2D::PixelFormat::DEFAULT },
+        {"NONE",(int)Texture2D::PixelFormat::NONE },
+        {NULL,NULL}
+    };
+    Lua_AddConstVariable(L, "Texture2D", em);
+    return 0;
 }
 
 /***************************Sprite**********************************/
@@ -2681,7 +2695,7 @@ int lua_cocos2dx_ProgressTimer_setReverseDirection(lua_State* L)
 {
 	ProgressTimer* timer = Lua_GetPointer<ProgressTimer>(L, 1);
 	if (!timer) return 0;
-	timer->setReverseProgress(Lua_GetBool(L, 2));
+	timer->setReverseDirection(Lua_GetBool(L, 2));
 	return 0;
 }
 int lua_cocos2dx_ProgressTimer_setMidpoint(lua_State* L)
@@ -2736,4 +2750,549 @@ int lua_cocos2dx_open_ProgressTimer(lua_State* L)
 	};
 	Lua_AddConstVariable(L, "ProgressTimer", em);
 	return 1;
+}
+
+/******************************EventListener**********************************/
+int lua_cocos2dx_EventListener_checkAvailable(lua_State* L)
+{
+    EventListener* listener = Lua_GetPointer<EventListener>(L, 1);
+    if (!listener) return 0;
+    return Lua_SetBool(L, listener->checkAvailable());
+}
+int lua_cocos2dx_EventListener_clone(lua_State* L)
+{
+    EventListener* listener = Lua_GetPointer<EventListener>(L, 1);
+    if (!listener) return 0;
+    auto l = listener->clone();
+    return Lua_CreateRef(L, "EventListener", l);
+}
+int lua_cocos2dx_EventListener_setEnabled(lua_State* L)
+{
+    EventListener* listener = Lua_GetPointer<EventListener>(L, 1);
+    if (!listener) return 0;
+    listener->setEnabled(Lua_GetBool(L, 2));
+    return 0;
+}
+int lua_cocos2dx_EventListener_isEnabled(lua_State* L)
+{
+    EventListener* listener = Lua_GetPointer<EventListener>(L, 1);
+    if (!listener) return 0;
+    return Lua_SetBool(L, listener->isEnabled());
+}
+int lua_open_EventListener_module(lua_State* L)
+{
+    luaL_Reg reg[] = {
+        {"checkAvailable",lua_cocos2dx_EventListener_checkAvailable },
+        {"clone",lua_cocos2dx_EventListener_clone },
+        {"setEnabled",lua_cocos2dx_EventListener_setEnabled },
+        {"isEnabled",lua_cocos2dx_EventListener_isEnabled },
+        {NULL,NULL}
+    };
+    Lua_CreateModule(L, "EventListener", NULL, reg);
+    luaL_Enum em[] = {
+        {"UNKNOWN",(int)EventListener::Type::UNKNOWN},
+        {"TOUCH_ONE_BY_ONE",(int)EventListener::Type::TOUCH_ONE_BY_ONE},
+        {"TOUCH_ALL_AT_ONCE",(int)EventListener::Type::TOUCH_ALL_AT_ONCE },
+        {"KEYBOARD",(int)EventListener::Type::KEYBOARD },
+        {"MOUSE",(int)EventListener::Type::MOUSE },
+        {"ACCELERATION",(int)EventListener::Type::ACCELERATION },
+        {"FOCUS",(int)EventListener::Type::FOCUS },
+        {"GAME_CONTROLLER",(int)EventListener::Type::GAME_CONTROLLER },
+        {"CUSTOM",(int)EventListener::Type::CUSTOM },
+        {NULL,NULL}
+    };
+    Lua_AddConstVariable(L, "EventListener", em);
+    return 0;
+}
+
+/********************************EventListenerTouchOneByOne**********************************/
+int lua_cocos2dx_EventListenerTouchOneByOne_create(lua_State* L)
+{
+    auto listener = EventListenerTouchOneByOne::create();
+    listener->onTouchBegan = [=](Touch* touch, Event* event) -> bool {
+        if (Lua_GetRef(L, listener, "onTouchBegan") == LUA_TFUNCTION)
+        {
+            Lua_CallFunc(L, 1, luaL_Ptr{ "Touch",touch }, luaL_Ptr{ "Event", event });
+            return Lua_GetBool(L, -1);
+        }
+        return false;
+    };
+    listener->onTouchMoved = [=](Touch* touch, Event* event) -> void {
+        if (Lua_GetRef(L, listener, "onTouchMoved") == LUA_TFUNCTION)
+        {
+            Lua_CallFunc(L, 1, luaL_Ptr{ "Touch",touch }, luaL_Ptr{ "Event", event });
+        }
+    };
+    listener->onTouchEnded = [=](Touch* touch, Event* event) -> void {
+        if (Lua_GetRef(L, listener, "onTouchEnded") == LUA_TFUNCTION)
+        {
+            Lua_CallFunc(L, 1, luaL_Ptr{ "Touch",touch }, luaL_Ptr{ "Event", event });
+        }
+    };
+    listener->onTouchCancelled = [=](Touch* touch, Event* event) -> void {
+        if (Lua_GetRef(L, listener, "onTouchCancelled") == LUA_TFUNCTION)
+        {
+            Lua_CallFunc(L, 1, luaL_Ptr{ "Touch",touch }, luaL_Ptr{ "Event", event });
+        }
+    };
+    return Lua_CreateRef(L, "EventListenerTouchOneByOne", listener);
+}
+int lua_cocos2dx_EventListenerTouchOneByOne_setSwallowTouches(lua_State* L)
+{
+    EventListenerTouchOneByOne* listener = Lua_GetPointer<EventListenerTouchOneByOne>(L, 1);
+    if (!listener) return 0;
+    listener->setSwallowTouches(Lua_GetBool(L, 2));
+    return 0;
+}
+int lua_cocos2dx_EventListenerTouchOneByOne_isSwallowTouches(lua_State* L)
+{
+    EventListenerTouchOneByOne* listener = Lua_GetPointer<EventListenerTouchOneByOne>(L, 1);
+    if (!listener) return 0;
+    return Lua_SetBool(L, listener->isSwallowTouches());
+}
+
+int lua_cocos2dx_EventListenerTouchOneByOne_clone(lua_State* L)
+{
+    EventListenerTouchOneByOne* listener = Lua_GetPointer<EventListenerTouchOneByOne>(L, 1);
+    if (!listener) return 0;
+    auto l = listener->clone();
+    return Lua_CreateRef(L, "EventListenerTouchOneByOne", l);
+}
+int lua_open_EventListenerTouchOneByOne_module(lua_State* L)
+{
+    luaL_Reg reg[] = {
+        {"create",lua_cocos2dx_EventListenerTouchOneByOne_create },
+        {"setSwallowTouches",lua_cocos2dx_EventListenerTouchOneByOne_setSwallowTouches },
+        {"isSwallowTouches",lua_cocos2dx_EventListenerTouchOneByOne_isSwallowTouches },
+        {"clone",lua_cocos2dx_EventListenerTouchOneByOne_clone },
+        {NULL,NULL}
+    };
+    return Lua_CreateModule(L, "EventListenerTouchOneByOne", "EventListener", reg);
+}
+/********************************EventListenerTouchAllAtOnce*********************************************/
+int lua_cocos2dx_EventListenerTouchAllAtOnce_create(lua_State* L)
+{
+    EventListenerTouchAllAtOnce* listener = EventListenerTouchAllAtOnce::create();
+    listener->onTouchesBegan = [=](const std::vector<Touch*>& touches, Event* events) {
+        if (Lua_GetRef(L, listener, "onTouchesBegan") == LUA_TFUNCTION)
+        {
+            Lua_SetPointer(L, touches, "Touch");
+            Lua_SetPointer(L, events, "Event");
+            Lua_CallFunc(L, 0);
+        }
+    };
+    listener->onTouchesMoved = [=](const std::vector<Touch*>& touches, Event* events) {
+        if (Lua_GetRef(L, listener, "onTouchesMoved") == LUA_TFUNCTION)
+        {
+            Lua_SetPointer(L, touches, "Touch");
+            Lua_SetPointer(L, events, "Event");
+            Lua_CallFunc(L, 0);
+        }
+    };
+    listener->onTouchesEnded = [=](const std::vector<Touch*>& touches, Event* events) {
+        if (Lua_GetRef(L, listener, "onTouchesEnded") == LUA_TFUNCTION)
+        {
+            Lua_SetPointer(L, touches, "Touch");
+            Lua_SetPointer(L, events, "Event");
+            Lua_CallFunc(L, 0);
+        }
+    };
+    listener->onTouchesCancelled = [=](const std::vector<Touch*>& touches, Event* events) {
+        if (Lua_GetRef(L, listener, "onTouchesCancelled") == LUA_TFUNCTION)
+        {
+            Lua_SetPointer(L, touches, "Touch");
+            Lua_SetPointer(L, events, "Event");
+            Lua_CallFunc(L, 0);
+        }
+    };
+    return Lua_CreateRef(L, "EventListenerTouchAllAtOnce", listener);
+}
+int lua_cocos2dx_EventListenerTouchAllAtOnce_clone(lua_State* L)
+{
+    EventListenerTouchAllAtOnce* listener = Lua_GetPointer<EventListenerTouchAllAtOnce>(L, 1);
+    if (!listener) return 0;
+    auto l = listener->clone();
+    return Lua_CreateRef(L, "EventListenerTouchAllAtOnce", l);
+}
+int lua_open_EventListenerTouchAllAtOnce_module(lua_State* L)
+{
+    luaL_Reg reg[] = {
+        {"create",lua_cocos2dx_EventListenerTouchAllAtOnce_create },
+        {"clone",lua_cocos2dx_EventListenerTouchAllAtOnce_clone },
+        {NULL,NULL}
+    };
+    return Lua_CreateModule(L, "EventListenerTouchAllAtOnce", "EventListener", reg);
+}
+/********************************EventListenerKeyboard*********************************/
+int lua_cocos2dx_EventListenerKeyboard_create(lua_State* L)
+{
+    EventListenerKeyboard* listener = EventListenerKeyboard::create();
+    listener->onKeyPressed = [=](EventKeyboard::KeyCode code, Event* event) {
+        if (Lua_GetRef(L, listener, "onKeyPressed") == LUA_TFUNCTION)
+        {
+            Lua_CallFunc(L, 0, (int)code, luaL_Ptr{ "Event",event });
+        }
+    };
+    listener->onKeyReleased = [=](EventKeyboard::KeyCode code, Event* event) {
+        if (Lua_GetRef(L, listener, "onKeyReleased") == LUA_TFUNCTION)
+        {
+            Lua_CallFunc(L, 0, (int)code, luaL_Ptr{ "Event",event });
+        }
+    };
+    return Lua_CreateRef(L, "EventListenerKeyboard", listener);
+}
+int lua_cocos2dx_EventListenerKeyboard_clone(lua_State* L)
+{
+    EventListenerKeyboard* listener = Lua_GetPointer<EventListenerKeyboard>(L, 1);
+    if (!listener) return 0;
+    auto l = listener->clone();
+    return Lua_CreateRef(L, "EventListenerKeyboard", l);
+}
+int lua_open_EventListenerKeyboard_module(lua_State* L)
+{
+    luaL_Reg reg[] = {
+        {"create",lua_cocos2dx_EventListenerKeyboard_create },
+        {"clone",lua_cocos2dx_EventListenerKeyboard_clone },
+        {NULL,NULL}
+    };
+    return Lua_CreateModule(L, "EventListenerKeyboard", "EventListener", reg);
+}
+/**************************EventListenerMouse*********************************/
+int lua_cocos2dx_EventListenerMouse_create(lua_State* L)
+{
+    EventListenerMouse* listener = EventListenerMouse::create();
+    listener->onMouseDown = [=](EventMouse* event) {
+        if (Lua_GetRef(L, listener, "onMouseDown") == LUA_TFUNCTION)
+        {
+            Lua_CallFunc(L, 0, luaL_Ptr{ "EventMouse",event });
+        }
+    };
+    listener->onMouseUp = [=](EventMouse* event) {
+        if (Lua_GetRef(L, listener, "onMouseUp") == LUA_TFUNCTION)
+        {
+            Lua_CallFunc(L, 0, luaL_Ptr{ "EventMouse",event });
+        }
+    };
+    listener->onMouseMove = [=](EventMouse* event) {
+        if (Lua_GetRef(L, listener, "onMouseMove") == LUA_TFUNCTION)
+        {
+            Lua_CallFunc(L, 0, luaL_Ptr{ "EventMouse",event });
+        }
+    };
+    listener->onMouseScroll = [=](EventMouse* event) {
+        if (Lua_GetRef(L, listener, "onMouseScroll") == LUA_TFUNCTION)
+        {
+            Lua_CallFunc(L, 0, luaL_Ptr{ "EventMouse",event });
+        }
+    };
+    return Lua_CreateRef(L,"EventListenerMouse",listener);
+}
+int lua_cocos2dx_EventListenerMouse_clone(lua_State* L) 
+{
+    EventListenerMouse* listener = Lua_GetPointer<EventListenerMouse>(L, 1);
+    if (!listener) return 0;
+    auto l = listener->clone();
+    return Lua_CreateRef(L, "EventListenerMouse", l);
+}
+int lua_open_EventListenerMouse_module(lua_State* L)
+{
+    luaL_Reg reg[] = {
+        {"create",lua_cocos2dx_EventListenerMouse_create },
+        {"clone",lua_cocos2dx_EventListenerMouse_clone },
+        {NULL,NULL},
+    };
+    return Lua_CreateModule(L, "EventListenerMouse", "EventListener", reg);
+}
+/******************************EventListenerAcceleration*****************************/
+int lua_cocos2dx_EventListenerAcceleration_create(lua_State* L)
+{
+    EventListenerAcceleration* listener = EventListenerAcceleration::create([=](Acceleration* acc, Event* event) {
+        if (Lua_GetRef(L, listener, "onAccelerationEvent") == LUA_TFUNCTION)
+        {
+            Lua_CallFunc(L, 0, luaL_Ptr{ "Acceleration",acc }, luaL_Ptr{ "Event",event });
+        }
+    });
+    return Lua_CreateRef(L, "EventListenerAcceleration", listener);
+}
+int lua_cocos2dx_EventListenerAcceleration_clone(lua_State* L)
+{
+    EventListenerAcceleration* listener = Lua_GetPointer<EventListenerAcceleration>(L, 1);
+    if (!listener) return 0;
+    auto l = listener->clone();
+    return Lua_CreateRef(L, "EventListenerAcceleration", l);
+}
+int lua_open_EventListenerAcceleration_module(lua_State* L)
+{
+    luaL_Reg reg[] = {
+        {"create",lua_cocos2dx_EventListenerAcceleration_create },
+        {"clone",lua_cocos2dx_EventListenerAcceleration_clone },
+        {NULL,NULL}
+    };
+    return Lua_CreateModule(L, "EventListenerAcceleration", "EventListener", reg);
+}
+/******************************Event*******************************/
+int lua_cocos2dx_Event_getType(lua_State* L)
+{
+    Event* event = Lua_GetPointer<Event>(L, 1);
+    if (!event) return 0;
+    return Lua_SetInt(L,(int) event->getType());
+}
+int lua_cocos2dx_Event_stopPropagation(lua_State* L)
+{
+    Event* event = Lua_GetPointer<Event>(L, 1);
+    if (!event) return 0;
+    event->stopPropagation();
+    return 0;
+}
+int lua_cocos2dx_Event_isStopped(lua_State* L)
+{
+    Event* event = Lua_GetPointer<Event>(L, 1);
+    if (!event) return 0;
+    return Lua_SetBool(L, event->isStopped());
+}
+int lua_cocos2dx_Event_getCurrentTarget(lua_State* L)
+{
+    Event* event = Lua_GetPointer<Event>(L, 1);
+    if (!event) return 0;
+    Node* node = event->getCurrentTarget();
+    if (!node) return 0;
+    return Lua_SetPointer(L, node, "Node");
+}
+int lua_open_Event_module(lua_State* L)
+{
+    luaL_Reg reg[] = {
+        {"getType",lua_cocos2dx_Event_getType },
+        {"stopPropagation",lua_cocos2dx_Event_stopPropagation },
+        {"isStopped",lua_cocos2dx_Event_isStopped },
+        {"getCurrentTarget",lua_cocos2dx_Event_getCurrentTarget },
+        {NULL,NULL},
+    };
+    Lua_CreateModule(L, "Event", "Ref", reg);
+    luaL_Enum em[] = {
+        {"TOUCH",(int)Event::Type::TOUCH },
+        {"KEYBOARD",(int)Event::Type::KEYBOARD },
+        {"ACCELERATION",(int)Event::Type::ACCELERATION },
+        {"MOUSE",(int)Event::Type::MOUSE },
+        {"FOCUS",(int)Event::Type::FOCUS },
+        {"GAME_CONTROLLER",(int)Event::Type::GAME_CONTROLLER },
+        {"CUSTOM",(int)Event::Type::CUSTOM },
+        {NULL,NULL}
+    };
+    return Lua_AddConstVariable(L, "Event", em);
+}
+/***********************************EventTouch**************************************/
+int lua_cocos2dx_EventTouch_getEventCode(lua_State* L)
+{
+    EventTouch* event = Lua_GetPointer<EventTouch>(L, 1);
+    if (!event) return 0;
+    return Lua_SetInt(L,(int) event->getEventCode());
+}
+
+int lua_open_EventTouch_module(lua_State* L)
+{
+    luaL_Reg reg[] = {
+        {"getEventCode",lua_cocos2dx_EventTouch_getEventCode },
+        {NULL,NULL}
+    };
+    Lua_CreateModule(L, "EventTouch", "Event", reg);
+    luaL_Enum em[] = {
+        {"BEGAN",(int)EventTouch::EventCode::BEGAN },
+        {"MOVED",(int)EventTouch::EventCode::MOVED },
+        {"ENDED",(int)EventTouch::EventCode::ENDED },
+        {"CANCELLED",(int)EventTouch::EventCode::CANCELLED },
+        {NULL,NULL}
+    };
+    return Lua_AddConstVariable(L, "EventTouch", em);
+}
+/*****************************Touch********************************/
+int lua_cocos2dx_Touch_getLocation(lua_State* L)
+{
+    Touch* touch = Lua_GetPointer<Touch>(L, 1);
+    if (!touch) return 0;
+    return Lua_SetVec2(L, touch->getLocation());
+}
+int lua_cocos2dx_Touch_getPreviousLocation(lua_State* L)
+{
+    Touch* touch = Lua_GetPointer<Touch>(L, 1);
+    if (!touch) return 0;
+    return Lua_SetVec2(L, touch->getPreviousLocation());
+}
+int lua_cocos2dx_Touch_getStartLocation(lua_State* L)
+{
+    Touch* touch = Lua_GetPointer<Touch>(L, 1);
+    if (!touch) return 0;
+    return Lua_SetVec2(L, touch->getStartLocation());
+}
+int lua_cocos2dx_Touch_getDelta(lua_State* L)
+{
+    Touch* touch = Lua_GetPointer<Touch>(L, 1);
+    if (!touch) return 0;
+    return Lua_SetVec2(L, touch->getDelta());
+}
+int lua_cocos2dx_Touch_getLocationInView(lua_State* L)
+{
+    Touch* touch = Lua_GetPointer<Touch>(L, 1);
+    if (!touch) return 0;
+    return Lua_SetVec2(L, touch->getLocationInView());
+}
+int lua_cocos2dx_Touch_getPreviousLocationInView(lua_State* L)
+{
+    Touch* touch = Lua_GetPointer<Touch>(L, 1);
+    if (!touch) return 0;
+    return Lua_SetVec2(L, touch->getPreviousLocationInView());
+}
+int lua_cocos2dx_Touch_getStartLocationInView(lua_State* L)
+{
+    Touch* touch = Lua_GetPointer<Touch>(L, 1);
+    if (!touch) return 0;
+    return Lua_SetVec2(L, touch->getStartLocationInView());
+}
+int lua_cocos2dx_Touch_getID(lua_State* L)
+{
+    Touch* touch = Lua_GetPointer<Touch>(L, 1);
+    if (!touch) return 0;
+    return Lua_SetInt(L, touch->getID());
+}
+int lua_open_Touch_module(lua_State* L)
+{
+    luaL_Reg reg[] = {
+        {"getLocation",lua_cocos2dx_Touch_getLocation },
+        {"getPreviousLocation",lua_cocos2dx_Touch_getPreviousLocation },
+        {"getStartLocation",lua_cocos2dx_Touch_getStartLocation },
+        {"getDelta",lua_cocos2dx_Touch_getDelta },
+        {"getLocationInView",lua_cocos2dx_Touch_getLocationInView },
+        {"getPreviousLocationInView",lua_cocos2dx_Touch_getPreviousLocationInView },
+        {"getStartLocationInView",lua_cocos2dx_Touch_getStartLocationInView },
+        {"getID",lua_cocos2dx_Touch_getID },
+        {NULL,NULL}
+    };
+    return Lua_CreateModule(L, "Touch", "Ref", reg);
+}
+/************************************EventDispatcher********************************************/
+int lua_cocos2dx_EventDispatcher_addEventListenerWithSceneGraphPriority(lua_State* L)
+{
+    EventDispatcher* dispatcher = Lua_GetPointer<EventDispatcher>(L, 1);
+    if (!dispatcher) return 0;
+    EventListener* listener = Lua_GetPointer<EventListener>(L, 2);
+    if (!listener) return 0;
+    Node* node = Lua_GetPointer<Node>(L, 3);
+    if (!node) return 0;
+    dispatcher->addEventListenerWithSceneGraphPriority(listener, node);
+    return 0;
+}
+int lua_cocos2dx_EventDispatcher_addEventListenerWithFixedPriority(lua_State* L)
+{
+    EventDispatcher* dispatcher = Lua_GetPointer<EventDispatcher>(L, 1);
+    if (!dispatcher) return 0;
+    EventListener* listener = Lua_GetPointer<EventListener>(L, 2);
+    if (!listener) return 0;
+    dispatcher->addEventListenerWithFixedPriority(listener, Lua_GetInt(L, 3));
+    return 0;
+}
+int lua_cocos2dx_EventDispatcher_removeEventListener(lua_State* L)
+{
+    EventDispatcher* dispatcher = Lua_GetPointer<EventDispatcher>(L, 1);
+    if (!dispatcher) return 0;
+    EventListener* listener = Lua_GetPointer<EventListener>(L, 2);
+    if (!listener) return 0;
+    dispatcher->removeEventListener(listener);
+    return 0;
+}
+int lua_cocos2dx_EventDispatcher_removeEventListenersForType(lua_State* L)
+{
+    EventDispatcher* dispatcher = Lua_GetPointer<EventDispatcher>(L, 1);
+    if (!dispatcher) return 0;
+    dispatcher->removeEventListenersForType((EventListener::Type) Lua_GetInt(L, 2));
+    return 0;
+}
+int lua_cocos2dx_EventDispatcher_removeEventListenersForTarget(lua_State* L)
+{
+    EventDispatcher* dispatcher = Lua_GetPointer<EventDispatcher>(L, 1);
+    if (!dispatcher) return 0;
+    Node* node = Lua_GetPointer<Node>(L, 2);
+    if (!node) return 0;
+    dispatcher->removeEventListenersForTarget(node, Lua_GetBool(L, 3));
+    return 0;
+}
+int lua_cocos2dx_EventDispatcher_removeAllEventListeners(lua_State* L)
+{
+    EventDispatcher* dispatcher = Lua_GetPointer<EventDispatcher>(L, 1);
+    if (!dispatcher) return 0;
+    dispatcher->removeAllEventListeners();
+    return 0;
+}
+int lua_cocos2dx_EventDispatcher_pauseEventListenersForTarget(lua_State* L)
+{
+    EventDispatcher* dispatcher = Lua_GetPointer<EventDispatcher>(L, 1);
+    if (!dispatcher) return 0;
+    Node* node = Lua_GetPointer<Node>(L, 2);
+    if (!node) return 0;
+    dispatcher->pauseEventListenersForTarget(node, Lua_GetBool(L, 3));
+    return 0;
+}
+int lua_cocos2dx_EventDispatcher_resumeEventListenersForTarget(lua_State* L)
+{
+    EventDispatcher* dispatcher = Lua_GetPointer<EventDispatcher>(L, 1);
+    if (!dispatcher) return 0;
+    Node* node = Lua_GetPointer<Node>(L, 2);
+    if (!node) return 0;
+    dispatcher->resumeEventListenersForTarget(node, Lua_GetBool(L, 3));
+    return 0;
+}
+int lua_cocos2dx_EventDispatcher_setPriority(lua_State* L)
+{
+    EventDispatcher* dispatcher = Lua_GetPointer<EventDispatcher>(L, 1);
+    if (!dispatcher) return 0;
+    EventListener* listener = Lua_GetPointer<EventListener>(L, 2);
+    if (!dispatcher) return 0;
+    dispatcher->setPriority(listener, Lua_GetInt(L, 3));
+    return 0;
+}
+int lua_cocos2dx_EventDispatcher_setEnabled(lua_State* L)
+{
+    EventDispatcher* dispatcher = Lua_GetPointer<EventDispatcher>(L, 1);
+    if (!dispatcher) return 0;
+    dispatcher->setEnabled(Lua_GetBool(L, 2));
+    return 0;
+}
+int lua_cocos2dx_EventDispatcher_isEnabled(lua_State* L)
+{
+    EventDispatcher* dispatcher = Lua_GetPointer<EventDispatcher>(L, 1);
+    if (!dispatcher) return 0;
+    return Lua_SetBool(L, dispatcher->isEnabled());
+}
+int lua_cocos2dx_EventDispatcher_dispatchEvent(lua_State* L)
+{
+    EventDispatcher* dispatcher = Lua_GetPointer<EventDispatcher>(L, 1);
+    if (!dispatcher) return 0;
+    Event* event = Lua_GetPointer<Event>(L, 2);
+    if (!event) return 0;
+    dispatcher->dispatchEvent(event);
+    return 0;
+}
+int lua_cocos2dx_EventDispatcher_hasEventListener(lua_State* L)
+{
+    EventDispatcher* dispatcher = Lua_GetPointer<EventDispatcher>(L, 1);
+    if (!dispatcher) return 0;
+    return Lua_SetBool(L, dispatcher->hasEventListener(Lua_GetString(L, 2)));
+}
+int lua_open_EventDispatcher_module(lua_State* L)
+{
+    luaL_Reg reg[] = {
+        {"addEventListenerWithSceneGraphPriority",lua_cocos2dx_EventDispatcher_addEventListenerWithSceneGraphPriority },
+        {"addEventListenerWithFixedPriority",lua_cocos2dx_EventDispatcher_addEventListenerWithFixedPriority },
+        {"removeEventListener",lua_cocos2dx_EventDispatcher_removeEventListener },
+        {"removeEventListenersForType",lua_cocos2dx_EventDispatcher_removeEventListenersForType },
+        {"removeEventListenersForTarget",lua_cocos2dx_EventDispatcher_removeEventListenersForTarget },
+        {"removeAllEventListeners",lua_cocos2dx_EventDispatcher_removeAllEventListeners },
+        {"pauseEventListenersForTarget",lua_cocos2dx_EventDispatcher_pauseEventListenersForTarget },
+        {"resumeEventListenersForTarget",lua_cocos2dx_EventDispatcher_resumeEventListenersForTarget },
+        {"setPriority",lua_cocos2dx_EventDispatcher_setPriority },
+        {"setEnabled",lua_cocos2dx_EventDispatcher_setEnabled },
+        {"isEnabled",lua_cocos2dx_EventDispatcher_isEnabled },
+        {"dispatchEvent",lua_cocos2dx_EventDispatcher_dispatchEvent },
+        {"hasEventListener",lua_cocos2dx_EventDispatcher_hasEventListener },
+        {NULL,NULL}
+    };
+    return Lua_CreateModule(L, "EventDispatcher", "Ref", reg, Director::getInstance()->getEventDispatcher());
 }
